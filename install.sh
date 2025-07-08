@@ -12,6 +12,12 @@ if ! command -v pip3 >/dev/null 2>&1; then
     apt update && apt install python3-pip -y
 fi
 
+# نصب git اگر وجود ندارد
+if ! command -v git >/dev/null 2>&1; then
+    echo "[!] git not found. Installing..."
+    apt update && apt install git -y
+fi
+
 # اگر فایل server.py وجود ندارد، پروژه را کلون کن
 if [ ! -f server.py ]; then
     echo "[!] Project files not found. Cloning from GitHub..."
