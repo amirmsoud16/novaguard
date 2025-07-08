@@ -27,8 +27,8 @@ fi
 # اگر فایل server.py وجود ندارد، پروژه را کلون کن
 if [ ! -f server.py ]; then
     echo "[!] Project files not found. Cloning from GitHub..."
-    git clone https://github.com/amirmsoud16/novaguard.git temp_novaguard
-    cd temp_novaguard
+    git clone https://github.com/amirmsoud16/novaguard.git novaguard
+    cd novaguard
 fi
 
 function loading() {
