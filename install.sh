@@ -82,6 +82,7 @@ cat > "$CONFIG_PATH" <<EOF
   "protocol": "novaguard-v1",
   "version": "1.0.0"
 }
+
 EOF
 echo "[i] فایل کانفیک با IP $SERVER_IP ساخته شد: $CONFIG_PATH"
 # ایجاد endpoint برای دانلود سرتیفیکیت
