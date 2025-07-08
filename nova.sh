@@ -63,6 +63,8 @@ if [ -z "$SERVER_IP" ]; then
 fi
 # انتخاب پورت رندوم بین 3000 تا 3100
 PORT=$(( RANDOM % 101 + 3000 ))
+# تولید uuid برای session_id
+SESSION_ID=$(cat /proc/sys/kernel/random/uuid)
 cat > "$CONFIG_PATH" <<EOF
 {
   "host": "$SERVER_IP",
@@ -70,7 +72,8 @@ cat > "$CONFIG_PATH" <<EOF
   "certfile": "novaguard.crt",
   "keyfile": "novaguard.key",
   "protocol": "novaguard-v1",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "session_id": "$SESSION_ID"
 }
 EOF
 }
