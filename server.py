@@ -109,22 +109,39 @@ def serve_cert():
     t.start()
 serve_cert()
 
+def udp_server():
+    udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_sock.bind((HOST, PORT))
+    print(f"[UDP] novaguard server listening on {HOST}:{PORT}")
+    while True:
+        try:
+            data, addr = udp_sock.recvfrom(4096)
+            print(f"[UDP] Received from {addr}: {data}")
+            # Echo back (for now)
+            udp_sock.sendto(data, addr)
+        except Exception as e:
+            print(f"[UDP] Error: {e}")
+
 # --- سرور اصلی ---
 def main():
+    # Start UDP server in a thread
+    t_udp = threading.Thread(target=udp_server, daemon=True)
+    t_udp.start()
+    # TCP server as before
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as sock:
         sock.bind((HOST, PORT))
         sock.listen(100)
-        print(f"novaguard server listening on {HOST}:{PORT} (TLS enabled)")
+        print(f"[TCP] novaguard server listening on {HOST}:{PORT} (TLS enabled)")
         print(f"Connection Code: {generate_connection_code()}")
         with context.wrap_socket(sock, server_side=True) as ssock:
             while True:
                 try:
                     conn, addr = ssock.accept()
-                    print(f"[+] Connection from {addr}")
+                    print(f"[TCP] Connection from {addr}")
                     t = threading.Thread(target=handle_client, args=(conn, addr), daemon=True)
                     t.start()
                 except Exception as e:
-                    print(f"[!] Accept error: {e}")
+                    print(f"[TCP] Accept error: {e}")
 
 if __name__ == "__main__":
     main()
