@@ -18,6 +18,12 @@ if ! command -v git >/dev/null 2>&1; then
     apt update && apt install git -y
 fi
 
+# نصب jq اگر وجود ندارد
+if ! command -v jq >/dev/null 2>&1; then
+    echo "[!] jq not found. Installing..."
+    apt update && apt install jq -y
+fi
+
 # اگر فایل server.py وجود ندارد، پروژه را کلون کن
 if [ ! -f server.py ]; then
     echo "[!] Project files not found. Cloning from GitHub..."
@@ -58,6 +64,11 @@ if [ ! -f novaguard.crt ] || [ ! -f novaguard.key ]; then
 else
     echo "[2/3] SSL certificate already exists."
 fi
+
+# پیدا کردن مسیر واقعی nova.sh حتی اگر اسکریپت از temp_novaguard اجرا شود
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cp "$SCRIPT_DIR/nova.sh" /usr/local/bin/nova
+chmod +x /usr/local/bin/nova
 
 echo "[3/3] Done!"
 echo "To run the server, use:"
