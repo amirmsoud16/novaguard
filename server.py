@@ -7,6 +7,12 @@ import threading
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from cryptography.hazmat.primitives import hashes
 from cryptography.x509 import load_pem_x509_certificate
+import os
+# نسخه پروتکل
+VERSION = config.get('version', '1.0.0')
+# endpoint برای دانلود سرتیفیکیت
+from http.server import SimpleHTTPRequestHandler, HTTPServer
+import threading
 
 # --- تنظیمات ---
 with open('config.json', 'r') as f:
@@ -85,6 +91,22 @@ def handle_client(conn, addr):
     finally:
         conn.close()
         print(f"[-] Session closed for {addr}")
+
+def serve_cert():
+    class Handler(SimpleHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == '/novaguard.crt':
+                self.send_response(200)
+                self.send_header('Content-type', 'application/x-x509-ca-cert')
+                self.end_headers()
+                with open('novaguard.crt', 'rb') as f:
+                    self.wfile.write(f.read())
+            else:
+                self.send_response(404)
+                self.end_headers()
+    t = threading.Thread(target=lambda: HTTPServer(("0.0.0.0", 8080), Handler).serve_forever(), daemon=True)
+    t.start()
+serve_cert()
 
 # --- سرور اصلی ---
 def main():
