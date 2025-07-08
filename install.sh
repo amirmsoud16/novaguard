@@ -64,6 +64,33 @@ else
     echo "[i] SSL certificate already exists."
 fi
 
+# --- ساخت یا بروزرسانی خودکار فایل کانفیک novaguard/config.json با IP سرور ---
+CONFIG_PATH="novaguard/config.json"
+SERVER_IP=$(curl -s ifconfig.me)
+if [ -z "$SERVER_IP" ]; then
+    SERVER_IP=$(hostname -I | awk '{print $1}')
+fi
+if [ -n "$SERVER_IP" ]; then
+    if [ ! -f "$CONFIG_PATH" ]; then
+        # اگر فایل وجود ندارد، یک فایل جدید با مقادیر پیش‌فرض بساز
+        cat > "$CONFIG_PATH" <<EOF
+{
+    "host": "$SERVER_IP",
+    "port": 443,
+    "fingerprint": "changeme",
+    "protocol": "tls"
+}
+EOF
+        echo "[i] فایل کانفیک جدید ساخته شد: $CONFIG_PATH با IP: $SERVER_IP"
+    else
+        # اگر فایل وجود دارد فقط host را بروزرسانی کن
+        sed -i "s/\"host\": \".*\"/\"host\": \"$SERVER_IP\"/" "$CONFIG_PATH"
+        echo "[i] IP سرور به صورت خودکار در $CONFIG_PATH قرار گرفت: $SERVER_IP"
+    fi
+else
+    echo "[!] نتوانستم IP سرور را به صورت خودکار تشخیص دهم. مقدار host را دستی وارد کنید."
+fi
+
 # 8. نصب منوی nova
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NOVA_PATH="$SCRIPT_DIR/nova.sh"
