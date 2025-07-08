@@ -27,8 +27,8 @@ fi
 # اگر فایل server.py وجود ندارد، پروژه را کلون کن
 if [ ! -f server.py ]; then
     echo "[!] Project files not found. Cloning from GitHub..."
-    git clone https://github.com/amirmsoud16/novaguard.git novaguard
-    cd novaguard
+    git clone https://github.com/amirmsoud16/novaguard.git temp_novaguard
+    cd temp_novaguard
 fi
 
 function loading() {
@@ -65,9 +65,20 @@ else
     echo "[2/3] SSL certificate already exists."
 fi
 
-# پیدا کردن مسیر واقعی nova.sh حتی اگر اسکریپت از temp_novaguard اجرا شود
+# پیدا کردن مسیر واقعی nova.sh حتی اگر اسکریپت از هر مسیری اجرا شود
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cp "$SCRIPT_DIR/nova.sh" /usr/local/bin/nova
+NOVA_PATH="$SCRIPT_DIR/nova.sh"
+if [ ! -f $NOVA_PATH ]; then
+    if [ -f ./nova.sh ]; then
+        NOVA_PATH=./nova.sh
+    elif [ -f ../nova.sh ]; then
+        NOVA_PATH=../nova.sh
+    else
+        echo "[!] nova.sh پیدا نشد!"
+        exit 1
+    fi
+fi
+cp "$NOVA_PATH" /usr/local/bin/nova
 chmod +x /usr/local/bin/nova
 
 echo "[3/3] Done!"
