@@ -66,6 +66,8 @@ fi
 
 # --- ساخت یا بروزرسانی خودکار فایل کانفیک novaguard/config.json با IP سرور ---
 CONFIG_PATH="novaguard/config.json"
+# اطمینان از وجود دایرکتوری والد
+mkdir -p $(dirname "$CONFIG_PATH")
 SERVER_IP=$(curl -s ifconfig.me)
 if [ -z "$SERVER_IP" ]; then
     SERVER_IP=$(hostname -I | awk '{print $1}')
