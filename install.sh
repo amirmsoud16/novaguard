@@ -65,7 +65,7 @@ else
 fi
 
 # --- ساخت یا بروزرسانی خودکار فایل کانفیک novaguard/config.json با IP سرور ---
-CONFIG_PATH="novaguard/config.json"
+CONFIG_PATH="/root/novaguard/config.json"
 mkdir -p $(dirname "$CONFIG_PATH")
 > "$CONFIG_PATH"
 # تشخیص IP سرور (ترجیحاً public)
