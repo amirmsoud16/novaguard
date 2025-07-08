@@ -2,48 +2,67 @@
 
 set -e
 
-# نصب python3 و pip3 اگر وجود ندارند
+# 1. نصب python3 اگر نصب نیست
 if ! command -v python3 >/dev/null 2>&1; then
     echo "[!] Python3 not found. Installing..."
     apt update && apt install python3 -y
+else
+    echo "[i] Python3 already installed."
 fi
+
+# 2. نصب pip3 اگر نصب نیست
 if ! command -v pip3 >/dev/null 2>&1; then
     echo "[!] pip3 not found. Installing..."
     apt update && apt install python3-pip -y
+else
+    echo "[i] pip3 already installed."
 fi
 
-# نصب git اگر وجود ندارد
+# 3. نصب git اگر نصب نیست
 if ! command -v git >/dev/null 2>&1; then
     echo "[!] git not found. Installing..."
     apt update && apt install git -y
+else
+    echo "[i] git already installed."
 fi
 
-# نصب jq اگر وجود ندارد
+# 4. نصب jq اگر نصب نیست
 if ! command -v jq >/dev/null 2>&1; then
     echo "[!] jq not found. Installing..."
     apt update && apt install jq -y
+else
+    echo "[i] jq already installed."
 fi
 
-# اگر فایل server.py وجود ندارد، پروژه را در فولدر novaguard کلون کن
-if [ ! -f server.py ]; then
-    echo "[!] Project files not found. Creating 'novaguard' directory and cloning from GitHub..."
-    mkdir -p novaguard
-    cd novaguard
-    git clone https://github.com/amirmsoud16/novaguard.git .
+# 5. کلون پروژه در novaguard اگر وجود ندارد
+if [ ! -d novaguard ]; then
+    echo "[!] Cloning project into 'novaguard'..."
+    git clone https://github.com/amirmsoud16/novaguard.git novaguard
+else
+    echo "[i] Directory 'novaguard' already exists. Skipping clone."
+fi
+cd novaguard
+
+# 6. نصب پکیج‌های پایتون فقط اگر نیاز باشد
+if [ -f requirements.txt ]; then
+    REQUIREMENTS_INSTALLED=$(python3 -m pip freeze | grep -f requirements.txt | wc -l)
+    if [ "$REQUIREMENTS_INSTALLED" -ne "$(cat requirements.txt | wc -l)" ]; then
+        echo "[!] Installing/Upgrading Python requirements..."
+        pip3 install --upgrade pip --break-system-packages
+        pip3 install --break-system-packages -r requirements.txt
+    else
+        echo "[i] Python requirements already satisfied."
+    fi
 fi
 
-# نصب وابستگی‌های پایتون
-pip3 install --upgrade pip
-pip3 install -r requirements.txt
-
-# تولید گواهی SSL اگر وجود ندارد
+# 7. تولید گواهی SSL اگر وجود ندارد
 if [ ! -f novaguard.crt ] || [ ! -f novaguard.key ]; then
     bash generate_cert.sh
 else
-    echo "[2/3] SSL certificate already exists."
+    echo "[i] SSL certificate already exists."
 fi
 
-# پیدا کردن مسیر واقعی nova.sh حتی اگر اسکریپت از هر مسیری اجرا شود
+# 8. نصب منوی nova
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NOVA_PATH="$SCRIPT_DIR/nova.sh"
 if [ ! -f $NOVA_PATH ]; then
@@ -59,6 +78,5 @@ fi
 cp "$NOVA_PATH" /usr/local/bin/nova
 chmod +x /usr/local/bin/nova
 
-echo "[3/3] Done!"
-echo "سرور نصب شد. برای مدیریت و دریافت کانفیک، دستور زیر را اجرا کنید:"
+echo "[✔] نصب کامل شد. برای مدیریت و ساخت کانفیک، دستور زیر را اجرا کنید:"
 echo "sudo nova" 
