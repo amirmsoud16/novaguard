@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# پیدا کردن مسیر پروژه (جایی که server.py وجود دارد)
+if [ -f ./server.py ]; then
+    PROJECT_DIR=$(pwd)
+elif [ -f ./novaguard/server.py ]; then
+    PROJECT_DIR=$(pwd)/novaguard
+else
+    echo "[!] server.py پیدا نشد! لطفاً منو را از مسیر صحیح اجرا کنید."
+    exit 1
+fi
+cd "$PROJECT_DIR"
+
 CONFIG_DIR="configs"
 SERVER_SCRIPT="server.py"
 CONFIG_FILE="config.json"
