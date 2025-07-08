@@ -10,9 +10,10 @@ from cryptography.x509 import load_pem_x509_certificate
 import os
 # نسخه پروتکل
 # --- تنظیمات ---
-with open('config.json', 'r') as f:
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(BASE_DIR, 'config.json')
+with open(CONFIG_PATH, 'r') as f:
     config = json.load(f)
-
 VERSION = config.get('version', '1.0.0')
 # endpoint برای دانلود سرتیفیکیت
 from http.server import SimpleHTTPRequestHandler, HTTPServer
