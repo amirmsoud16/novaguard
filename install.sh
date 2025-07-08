@@ -66,28 +66,46 @@ fi
 
 # --- ساخت یا بروزرسانی خودکار فایل کانفیک novaguard/config.json با IP سرور ---
 CONFIG_PATH="novaguard/config.json"
-# اطمینان از وجود دایرکتوری والد
 mkdir -p $(dirname "$CONFIG_PATH")
-# ابتدا فایل کانفیک را با host پیش‌فرض بساز
-cat > "$CONFIG_PATH" <<EOF
-{
-  "host": "0.0.0.0",
-  "port": 443,
-  "certfile": "novaguard.crt",
-  "keyfile": "novaguard.key",
-  "protocol": "novaguard-v1"
-}
-EOF
-# سپس مقدار host را با IP سرور جایگزین کن
+> "$CONFIG_PATH"
+# تشخیص IP سرور (ترجیحاً public)
 SERVER_IP=$(curl -s ifconfig.me)
 if [ -z "$SERVER_IP" ]; then
     SERVER_IP=$(hostname -I | awk '{print $1}')
 fi
-if [ -n "$SERVER_IP" ]; then
-    sed -i "s/\"host\": \".*\"/\"host\": \"$SERVER_IP\"/" "$CONFIG_PATH"
-    echo "[i] IP سرور به صورت خودکار در $CONFIG_PATH قرار گرفت: $SERVER_IP"
-else
-    echo "[!] نتوانستم IP سرور را به صورت خودکار تشخیص دهم. مقدار host را دستی وارد کنید."
+cat > "$CONFIG_PATH" <<EOF
+{
+  "host": "$SERVER_IP",
+  "port": 443,
+  "certfile": "novaguard.crt",
+  "keyfile": "novaguard.key",
+  "protocol": "novaguard-v1",
+  "version": "1.0.0"
+}
+EOF
+echo "[i] فایل کانفیک با IP $SERVER_IP ساخته شد: $CONFIG_PATH"
+# ایجاد endpoint برای دانلود سرتیفیکیت
+if ! grep -q 'def serve_cert' server.py; then
+cat <<'PYEND' >> server.py
+from http.server import SimpleHTTPRequestHandler, HTTPServer
+import threading
+
+def serve_cert():
+    class Handler(SimpleHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == '/novaguard.crt':
+                self.send_response(200)
+                self.send_header('Content-type', 'application/x-x509-ca-cert')
+                self.end_headers()
+                with open('novaguard.crt', 'rb') as f:
+                    self.wfile.write(f.read())
+            else:
+                self.send_response(404)
+                self.end_headers()
+    t = threading.Thread(target=lambda: HTTPServer(("0.0.0.0", 8080), Handler).serve_forever(), daemon=True)
+    t.start()
+serve_cert()
+PYEND
 fi
 
 # 8. نصب منوی nova
