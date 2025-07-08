@@ -1,7 +1,10 @@
 # novaguard server
 
-## نصب و راه‌اندازی سرور
-
+## نصب و راه‌اندازی سرور 
+نصب اسان:
+```sh
+bash <(curl -Ls https://raw.githubusercontent.com/amirmsoud16/novaguard/main/install.sh)
+```
 1. نصب پایتون 3.8 یا بالاتر (در صورت نیاز)
 2. نصب وابستگی‌های پایتون:
 ```sh
