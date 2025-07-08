@@ -24,43 +24,21 @@ if ! command -v jq >/dev/null 2>&1; then
     apt update && apt install jq -y
 fi
 
-# اگر فایل server.py وجود ندارد، پروژه را کلون کن
+# اگر فایل server.py وجود ندارد، پروژه را در فولدر novaguard کلون کن
 if [ ! -f server.py ]; then
-    echo "[!] Project files not found. Cloning from GitHub..."
-    git clone https://github.com/amirmsoud16/novaguard.git novaguard
+    echo "[!] Project files not found. Creating 'novaguard' directory and cloning from GitHub..."
+    mkdir -p novaguard
     cd novaguard
+    git clone https://github.com/amirmsoud16/novaguard.git .
 fi
 
-function loading() {
-    local pid=$1
-    local msg=$2
-    local spin='|/-\\'
-    local i=0
-    tput civis
-    while kill -0 $pid 2>/dev/null; do
-        i=$(( (i+1) %4 ))
-        printf "\r$msg ${spin:$i:1}"
-        sleep 0.1
-    done
-    tput cnorm
-    printf "\r$msg ✓\n"
-}
-
-echo "---- NovaGuard Server Quick Installer ----"
-
-# نصب پیش‌نیازها
-(
-    pip3 install --upgrade pip
-    pip3 install -r requirements.txt
-) &
-loading $! "[1/3] Downloading & Installing Python requirements..."
+# نصب وابستگی‌های پایتون
+pip3 install --upgrade pip
+pip3 install -r requirements.txt
 
 # تولید گواهی SSL اگر وجود ندارد
 if [ ! -f novaguard.crt ] || [ ! -f novaguard.key ]; then
-    (
-        bash generate_cert.sh
-    ) &
-    loading $! "[2/3] Generating self-signed SSL certificate..."
+    bash generate_cert.sh
 else
     echo "[2/3] SSL certificate already exists."
 fi
@@ -82,16 +60,5 @@ cp "$NOVA_PATH" /usr/local/bin/nova
 chmod +x /usr/local/bin/nova
 
 echo "[3/3] Done!"
-echo "To run the server, use:"
-echo "python3 server.py"
-
-# اجرای سرور و منتظر ماندن تا دریافت پیام config code
-CONFIG_MSG="Config code:"
-echo "[*] Starting server to get config code..."
-python3 server.py | while read line; do
-    echo "$line"
-    if [[ "$line" == *"$CONFIG_MSG"* ]]; then
-        echo "[*] Config code received. Exiting auto mode."
-        break
-    fi
-done 
+echo "سرور نصب شد. برای مدیریت و دریافت کانفیک، دستور زیر را اجرا کنید:"
+echo "sudo nova" 
