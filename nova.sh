@@ -1,12 +1,9 @@
 #!/bin/bash
 
-# پیدا کردن مسیر پروژه (جایی که server.py وجود دارد)
-if [ -f ./server.py ]; then
-    PROJECT_DIR=$(pwd)
-elif [ -f ./novaguard/server.py ]; then
-    PROJECT_DIR=$(pwd)/novaguard
-else
-    echo "[!] server.py پیدا نشد! لطفاً منو را از مسیر صحیح اجرا کنید."
+# تنظیم مسیر پروژه به صورت ثابت
+PROJECT_DIR="/root/novaguard"
+if [ ! -f "$PROJECT_DIR/server.py" ]; then
+    echo "[!] server.py در مسیر $PROJECT_DIR پیدا نشد! لطفاً پروژه را در این مسیر قرار دهید."
     exit 1
 fi
 cd "$PROJECT_DIR"
