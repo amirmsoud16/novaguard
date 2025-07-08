@@ -48,7 +48,7 @@ if [ -f requirements.txt ]; then
     REQUIREMENTS_INSTALLED=$(python3 -m pip freeze | grep -f requirements.txt | wc -l)
     if [ "$REQUIREMENTS_INSTALLED" -ne "$(cat requirements.txt | wc -l)" ]; then
         echo "[!] Installing/Upgrading Python requirements..."
-        pip3 install --break-system-packages -r requirements.txt
+        pip3 install --break-system-packages --ignore-installed -r requirements.txt
     else
         echo "[i] Python requirements already satisfied."
     fi
