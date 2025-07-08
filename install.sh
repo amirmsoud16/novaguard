@@ -68,28 +68,24 @@ fi
 CONFIG_PATH="novaguard/config.json"
 # اطمینان از وجود دایرکتوری والد
 mkdir -p $(dirname "$CONFIG_PATH")
-SERVER_IP=$(curl -s ifconfig.me)
-if [ -z "$SERVER_IP" ]; then
-    SERVER_IP=$(hostname -I | awk '{print $1}')
-fi
-if [ -n "$SERVER_IP" ]; then
-    if [ ! -f "$CONFIG_PATH" ]; then
-        # اگر فایل وجود ندارد، یک فایل جدید با ساختار جدید بساز
-        cat > "$CONFIG_PATH" <<EOF
+# ابتدا فایل کانفیک را با host پیش‌فرض بساز
+cat > "$CONFIG_PATH" <<EOF
 {
-  "host": "$SERVER_IP",
+  "host": "0.0.0.0",
   "port": 443,
   "certfile": "novaguard.crt",
   "keyfile": "novaguard.key",
   "protocol": "novaguard-v1"
 }
 EOF
-        echo "[i] فایل کانفیک جدید ساخته شد: $CONFIG_PATH با IP: $SERVER_IP"
-    else
-        # اگر فایل وجود دارد فقط host را بروزرسانی کن
-        sed -i "s/\"host\": \".*\"/\"host\": \"$SERVER_IP\"/" "$CONFIG_PATH"
-        echo "[i] IP سرور به صورت خودکار در $CONFIG_PATH قرار گرفت: $SERVER_IP"
-    fi
+# سپس مقدار host را با IP سرور جایگزین کن
+SERVER_IP=$(curl -s ifconfig.me)
+if [ -z "$SERVER_IP" ]; then
+    SERVER_IP=$(hostname -I | awk '{print $1}')
+fi
+if [ -n "$SERVER_IP" ]; then
+    sed -i "s/\"host\": \".*\"/\"host\": \"$SERVER_IP\"/" "$CONFIG_PATH"
+    echo "[i] IP سرور به صورت خودکار در $CONFIG_PATH قرار گرفت: $SERVER_IP"
 else
     echo "[!] نتوانستم IP سرور را به صورت خودکار تشخیص دهم. مقدار host را دستی وارد کنید."
 fi
