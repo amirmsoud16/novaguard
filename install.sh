@@ -43,16 +43,18 @@ else
 fi
 cd novaguard
 
-# 6. نصب پکیج‌های پایتون فقط اگر نیاز باشد
-if [ -f requirements.txt ]; then
-    REQUIREMENTS_INSTALLED=$(python3 -m pip freeze | grep -f requirements.txt | wc -l)
-    if [ "$REQUIREMENTS_INSTALLED" -ne "$(cat requirements.txt | wc -l)" ]; then
-        echo "[!] Installing/Upgrading Python requirements..."
-        pip3 install --break-system-packages --ignore-installed -r requirements.txt
-    else
-        echo "[i] Python requirements already satisfied."
-    fi
+# 6. ساخت و استفاده از محیط مجازی پایتون (venv) برای نصب پکیج‌ها
+if [ ! -d venv ]; then
+    echo "[!] Creating Python virtual environment..."
+    apt install python3-venv -y
+    python3 -m venv venv
 fi
+
+# فعال‌سازی محیط مجازی و نصب پکیج‌ها
+source venv/bin/activate
+pip install -r requirements.txt
+# غیرفعال‌سازی محیط مجازی
+deactivate
 
 # 7. تولید گواهی SSL اگر وجود ندارد
 if [ ! -f novaguard.crt ] || [ ! -f novaguard.key ]; then
