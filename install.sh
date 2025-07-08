@@ -34,13 +34,14 @@ else
     echo "[i] jq already installed."
 fi
 
-# 5. کلون پروژه در novaguard اگر وجود ندارد
-if [ ! -d novaguard ]; then
-    echo "[!] Cloning project into 'novaguard'..."
-    git clone https://github.com/amirmsoud16/novaguard.git novaguard
-else
-    echo "[i] Directory 'novaguard' already exists. Skipping clone."
+# 5. حذف پوشه novaguard اگر وجود دارد، سپس کلون پروژه
+if [ -d novaguard ]; then
+    echo "[!] Directory 'novaguard' already exists. Removing for clean install..."
+    rm -rf novaguard
 fi
+
+echo "[!] Cloning project into 'novaguard'..."
+git clone https://github.com/amirmsoud16/novaguard.git novaguard
 cd novaguard
 
 # 6. ساخت و استفاده از محیط مجازی پایتون (venv) برای نصب پکیج‌ها
