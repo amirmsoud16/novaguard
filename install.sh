@@ -72,13 +72,14 @@ if [ -z "$SERVER_IP" ]; then
 fi
 if [ -n "$SERVER_IP" ]; then
     if [ ! -f "$CONFIG_PATH" ]; then
-        # اگر فایل وجود ندارد، یک فایل جدید با مقادیر پیش‌فرض بساز
+        # اگر فایل وجود ندارد، یک فایل جدید با ساختار جدید بساز
         cat > "$CONFIG_PATH" <<EOF
 {
-    "host": "$SERVER_IP",
-    "port": 443,
-    "fingerprint": "changeme",
-    "protocol": "tls"
+  "host": "$SERVER_IP",
+  "port": 443,
+  "certfile": "novaguard.crt",
+  "keyfile": "novaguard.key",
+  "protocol": "novaguard-v1"
 }
 EOF
         echo "[i] فایل کانفیک جدید ساخته شد: $CONFIG_PATH با IP: $SERVER_IP"
