@@ -61,10 +61,12 @@ SERVER_IP=$(curl -s ifconfig.me)
 if [ -z "$SERVER_IP" ]; then
     SERVER_IP=$(hostname -I | awk '{print $1}')
 fi
+# انتخاب پورت رندوم بین 3000 تا 3100
+PORT=$(( RANDOM % 101 + 3000 ))
 cat > "$CONFIG_PATH" <<EOF
 {
   "host": "$SERVER_IP",
-  "port": 443,
+  "port": $PORT,
   "certfile": "novaguard.crt",
   "keyfile": "novaguard.key",
   "protocol": "novaguard-v1",
