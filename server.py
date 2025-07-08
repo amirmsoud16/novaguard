@@ -9,14 +9,14 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.x509 import load_pem_x509_certificate
 import os
 # نسخه پروتکل
+# --- تنظیمات ---
+with open('config.json', 'r') as f:
+    config = json.load(f)
+
 VERSION = config.get('version', '1.0.0')
 # endpoint برای دانلود سرتیفیکیت
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import threading
-
-# --- تنظیمات ---
-with open('config.json', 'r') as f:
-    config = json.load(f)
 
 context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 context.load_cert_chain(certfile=config['certfile'], keyfile=config['keyfile'])
