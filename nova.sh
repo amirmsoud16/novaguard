@@ -98,6 +98,7 @@ while true; do
         1)
             start_server_bg
             echo "در حال ساخت کانفیک جدید..."
+            create_config
             CONFIG_CODE=$(python3 -c 'import server; print(server.generate_connection_code())')
             echo -e "\nکد کانفیک جدید:\n$CONFIG_CODE\n"
             mkdir -p $CONFIG_DIR
@@ -140,6 +141,7 @@ while true; do
             ;;
         7)
             echo "📝 کد کانفیک فعلی:"
+            create_config
             CONFIG_CODE=$(python3 -c 'import server; print(server.generate_connection_code())')
             echo "$CONFIG_CODE"
             ;;
