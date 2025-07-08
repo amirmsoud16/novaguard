@@ -52,6 +52,27 @@ function change_port() {
     fi
 }
 
+function create_config() {
+CONFIG_PATH="$(dirname "$0")/config.json"
+mkdir -p "$(dirname "$CONFIG_PATH")"
+> "$CONFIG_PATH"
+# تشخیص IP سرور (ترجیحاً public)
+SERVER_IP=$(curl -s ifconfig.me)
+if [ -z "$SERVER_IP" ]; then
+    SERVER_IP=$(hostname -I | awk '{print $1}')
+fi
+cat > "$CONFIG_PATH" <<EOF
+{
+  "host": "$SERVER_IP",
+  "port": 443,
+  "certfile": "novaguard.crt",
+  "keyfile": "novaguard.key",
+  "protocol": "novaguard-v1",
+  "version": "1.0.0"
+}
+EOF
+}
+
 function show_menu() {
     echo -e "\n🌐 ------ \e[1mمنوی مدیریت NovaGuard\e[0m ------ 🌐"
     echo "1️⃣  ساخت کانفیک جدید"
