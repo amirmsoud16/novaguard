@@ -2,6 +2,23 @@
 
 set -e
 
+# نصب python3 و pip3 اگر وجود ندارند
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "[!] Python3 not found. Installing..."
+    apt update && apt install python3 -y
+fi
+if ! command -v pip3 >/dev/null 2>&1; then
+    echo "[!] pip3 not found. Installing..."
+    apt update && apt install python3-pip -y
+fi
+
+# اگر فایل server.py وجود ندارد، پروژه را کلون کن
+if [ ! -f server.py ]; then
+    echo "[!] Project files not found. Cloning from GitHub..."
+    git clone https://github.com/amirmsoud16/novaguard.git temp_novaguard
+    cd temp_novaguard
+fi
+
 function loading() {
     local pid=$1
     local msg=$2
@@ -38,4 +55,15 @@ fi
 
 echo "[3/3] Done!"
 echo "To run the server, use:"
-echo "python3 server.py" 
+echo "python3 server.py"
+
+# اجرای سرور و منتظر ماندن تا دریافت پیام config code
+CONFIG_MSG="Config code:"
+echo "[*] Starting server to get config code..."
+python3 server.py | while read line; do
+    echo "$line"
+    if [[ "$line" == *"$CONFIG_MSG"* ]]; then
+        echo "[*] Config code received. Exiting auto mode."
+        break
+    fi
+done 
