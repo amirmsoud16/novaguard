@@ -55,8 +55,8 @@ SERVER_IP=$(curl -s ifconfig.me)
 if [ -z "$SERVER_IP" ]; then
     SERVER_IP=$(hostname -I | awk '{print $1}')
 fi
-TCP_PORT=443
-UDP_PORT=443
+TCP_PORT=8443
+UDP_PORT=1195
 CONFIG_ID=$(cat /proc/sys/kernel/random/uuid)
 SESSION_ID=$(cat /proc/sys/kernel/random/uuid)
 cat > "$CONFIG_PATH" <<EOF
