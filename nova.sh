@@ -65,8 +65,8 @@ cat > "$CONFIG_PATH" <<EOF
   "tcp_port": $TCP_PORT,
   "udp_port": $UDP_PORT,
   "config_id": "$CONFIG_ID",
-  "certfile": "novaguard.crt",
-  "keyfile": "novaguard.key",
+  "certfile": "/root/novaguard/novaguard.crt",
+  "keyfile": "/root/novaguard/novaguard.key",
   "protocol": "novaguard-v1",
   "version": "1.0.0",
   "session_id": "$SESSION_ID"
