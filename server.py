@@ -17,8 +17,8 @@ with open(CONFIG_PATH, 'r') as f:
     config = json.load(f)
 VERSION = config.get('version', '1.0.0')
 # Use separate ports for TCP and UDP
-TCP_PORT = config.get('tcp_port', config.get('port', 8443))
-UDP_PORT = config.get('udp_port', config.get('port', 1195))
+TCP_PORT = 8443
+UDP_PORT = 1195
 # endpoint برای دانلود سرتیفیکیت
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import threading
