@@ -1,0 +1,11 @@
+{
+  "host": "0.0.0.0",
+  "tcp_port": 3077,
+  "udp_port": 3076,
+  "config_id": "novaguard-config-001",
+  "certfile": "novaguard.crt",
+  "keyfile": "novaguard.key",
+  "protocol": "novaguard-v1",
+  "version": "1.0.0",
+  "session_id": "session-001"
+} 
