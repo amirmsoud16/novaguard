@@ -55,6 +55,7 @@ SERVER_IP=$(curl -s ifconfig.me)
 if [ -z "$SERVER_IP" ]; then
     SERVER_IP=$(hostname -I | awk '{print $1}')
 fi
+# مقدار ثابت پورت‌ها
 TCP_PORT=8443
 UDP_PORT=1195
 CONFIG_ID=$(cat /proc/sys/kernel/random/uuid)
@@ -133,13 +134,10 @@ while true; do
     read -p "Select an option [1-9]: " choice
     case $choice in
         1)
+            stop_server
             start_server_bg
             sleep 2
-            tcp_port=$(jq -r '.tcp_port // empty' "$PROJECT_DIR/config.json" 2>/dev/null)
-            if [ -z "$tcp_port" ]; then tcp_port=8443; fi
-            udp_port=$(jq -r '.udp_port // empty' "$PROJECT_DIR/config.json" 2>/dev/null)
-            if [ -z "$udp_port" ]; then udp_port=1195; fi
-            if is_port_listening "$tcp_port" || is_port_listening "$udp_port"; then
+            if is_port_listening "$TCP_PORT" || is_port_listening "$UDP_PORT"; then
                 if [ ! -f "$PROJECT_DIR/config.json" ]; then
                     echo "No config.json found. Creating new config..."
                     create_config
@@ -149,29 +147,25 @@ while true; do
                 CONFIG_PATH="$PROJECT_DIR/config.json"
                 # ساخت کد ng:// فقط با bash/jq/openssl
                 host=$(jq -r '.host' "$CONFIG_PATH")
-                tcp_port=$(jq -r '.tcp_port' "$CONFIG_PATH")
-                udp_port=$(jq -r '.udp_port' "$CONFIG_PATH")
                 config_id=$(jq -r '.config_id' "$CONFIG_PATH")
                 protocol=$(jq -r '.protocol' "$CONFIG_PATH")
                 certfile=$(jq -r '.certfile' "$CONFIG_PATH")
                 fingerprint=$(openssl x509 -in "$certfile" -noout -fingerprint -sha256 | cut -d'=' -f2 | tr '[:lower:]' '[:upper:]')
                 json=$(jq -n \
                   --arg server "$host" \
-                  --argjson tcp_port "$tcp_port" \
-                  --argjson udp_port "$udp_port" \
+                  --argjson tcp_port "8443" \
+                  --argjson udp_port "1195" \
                   --arg config_id "$config_id" \
                   --arg fingerprint "$fingerprint" \
                   --arg protocol "$protocol" \
-                  '{server: $server, tcp_port: $tcp_port, udp_port: $udp_port, config_id: $config_id, fingerprint: $fingerprint, protocol: $protocol}'
+                  '{server: $server, tcp_port: 8443, udp_port: 1195, config_id: $config_id, fingerprint: $fingerprint, protocol: $protocol}'
                 )
                 b64=$(echo -n "$json" | openssl base64 -A | tr '+/' '-_' | tr -d '=')
                 echo "ng://$b64"
                 mkdir -p $CONFIG_DIR
                 echo "ng://$b64" >> $HISTORY_FILE
             else
-                echo "[دیباگ] مقدار tcp_port: $tcp_port"
-                echo "[دیباگ] مقدار udp_port: $udp_port"
-                echo "[خطا] سرور روی پورت $tcp_port یا $udp_port اجرا نشده است! کانفیگ ساخته نشد."
+                echo "[خطا] سرور روی پورت 8443 یا 1195 اجرا نشده است! کانفیگ ساخته نشد."
             fi
             read -p "Return to menu? (y/n): " back
             if [[ "$back" != "y" && "$back" != "Y" ]]; then
