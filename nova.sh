@@ -117,36 +117,27 @@ while true; do
             echo "Creating new config..."
             create_config
             CONFIG_PATH="$PROJECT_DIR/config.json"
-            CONFIG_CODE=$(python3 -c "
-import json, base64
-from cryptography.hazmat.primitives import hashes
-from cryptography.x509 import load_pem_x509_certificate
-
-with open('$CONFIG_PATH') as f:
-    config = json.load(f)
-
-def get_cert_fingerprint(certfile):
-    with open(certfile, 'rb') as f:
-        cert = load_pem_x509_certificate(f.read())
-    fp = cert.fingerprint(hashes.SHA256())
-    return ':'.join([fp.hex()[i:i+2].upper() for i in range(0, len(fp.hex()), 2)])
-
-info = {
-    'server': config['host'],
-    'tcp_port': config['tcp_port'],
-    'udp_port': config['udp_port'],
-    'config_id': config.get('config_id', ''),
-    'fingerprint': get_cert_fingerprint(config['certfile']),
-    'protocol': config.get('protocol', 'novaguard')
-}
-
-b64 = base64.urlsafe_b64encode(json.dumps(info).encode()).decode()
-print(f'ng://{b64}')
-")
-            echo "ng:// config code:"
-            echo "$CONFIG_CODE"
+            # ساخت کد ng:// فقط با bash/jq/openssl
+            host=$(jq -r '.host' "$CONFIG_PATH")
+            tcp_port=$(jq -r '.tcp_port' "$CONFIG_PATH")
+            udp_port=$(jq -r '.udp_port' "$CONFIG_PATH")
+            config_id=$(jq -r '.config_id' "$CONFIG_PATH")
+            protocol=$(jq -r '.protocol' "$CONFIG_PATH")
+            certfile=$(jq -r '.certfile' "$CONFIG_PATH")
+            fingerprint=$(openssl x509 -in "$certfile" -noout -fingerprint -sha256 | cut -d'=' -f2 | tr '[:lower:]' '[:upper:]')
+            json=$(jq -n \
+              --arg server "$host" \
+              --argjson tcp_port "$tcp_port" \
+              --argjson udp_port "$udp_port" \
+              --arg config_id "$config_id" \
+              --arg fingerprint "$fingerprint" \
+              --arg protocol "$protocol" \
+              '{server: $server, tcp_port: $tcp_port, udp_port: $udp_port, config_id: $config_id, fingerprint: $fingerprint, protocol: $protocol}'
+            )
+            b64=$(echo -n "$json" | openssl base64 -A | tr '+/' '-_' | tr -d '=')
+            echo "ng://$b64"
             mkdir -p $CONFIG_DIR
-            echo "$CONFIG_CODE" >> $HISTORY_FILE
+            echo "ng://$b64" >> $HISTORY_FILE
             read -p "Return to menu? (y/n): " back
             if [[ "$back" != "y" && "$back" != "Y" ]]; then
                 echo "Exiting menu."
