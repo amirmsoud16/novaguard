@@ -123,6 +123,7 @@ function check_internet() {
 if ! pgrep -f $SERVER_SCRIPT > /dev/null; then
     read -p "آیا سرور راه‌اندازی شود؟ (Y/n): " startans
     if [[ -z "$startans" || "$startans" =~ ^[Yy]$ ]]; then
+        stop_server
         start_server_bg
     fi
 fi
@@ -134,8 +135,10 @@ while true; do
         1)
             start_server_bg
             sleep 2
-            tcp_port=$(jq -r '.tcp_port' "$PROJECT_DIR/config.json" 2>/dev/null || echo 8443)
-            udp_port=$(jq -r '.udp_port' "$PROJECT_DIR/config.json" 2>/dev/null || echo 1195)
+            tcp_port=$(jq -r '.tcp_port // empty' "$PROJECT_DIR/config.json" 2>/dev/null)
+            if [ -z "$tcp_port" ]; then tcp_port=8443; fi
+            udp_port=$(jq -r '.udp_port // empty' "$PROJECT_DIR/config.json" 2>/dev/null)
+            if [ -z "$udp_port" ]; then udp_port=1195; fi
             if is_port_listening "$tcp_port" || is_port_listening "$udp_port"; then
                 if [ ! -f "$PROJECT_DIR/config.json" ]; then
                     echo "No config.json found. Creating new config..."
@@ -215,6 +218,7 @@ while true; do
             check_internet
             ;;
         9)
+            stop_server
             start_server_bg
             read -p "Press Enter to return to menu..."
             ;;
