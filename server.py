@@ -182,7 +182,7 @@ def serve_cert():
                 self.send_response(200)
                 self.send_header('Content-type', 'application/x-x509-ca-cert')
                 self.end_headers()
-                with open('novaguard.crt', 'rb') as f:
+                with open('/root/novaguard/novaguard.crt', 'rb') as f:
                     self.wfile.write(f.read())
             else:
                 self.send_response(404)
