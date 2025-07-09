@@ -134,8 +134,9 @@ while true; do
         1)
             start_server_bg
             sleep 2
-            tcp_port=$(jq -r '.tcp_port' "$PROJECT_DIR/config.json" 2>/dev/null || echo 443)
-            if is_port_listening "$tcp_port"; then
+            tcp_port=$(jq -r '.tcp_port' "$PROJECT_DIR/config.json" 2>/dev/null || echo 8443)
+            udp_port=$(jq -r '.udp_port' "$PROJECT_DIR/config.json" 2>/dev/null || echo 1195)
+            if is_port_listening "$tcp_port" || is_port_listening "$udp_port"; then
                 if [ ! -f "$PROJECT_DIR/config.json" ]; then
                     echo "No config.json found. Creating new config..."
                     create_config
@@ -165,7 +166,7 @@ while true; do
                 mkdir -p $CONFIG_DIR
                 echo "ng://$b64" >> $HISTORY_FILE
             else
-                echo "[خطا] سرور روی پورت $tcp_port اجرا نشده است! کانفیگ ساخته نشد."
+                echo "[خطا] سرور روی پورت $tcp_port یا $udp_port اجرا نشده است! کانفیگ ساخته نشد."
             fi
             read -p "Return to menu? (y/n): " back
             if [[ "$back" != "y" && "$back" != "Y" ]]; then
