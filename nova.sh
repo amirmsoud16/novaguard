@@ -74,6 +74,15 @@ cat > "$CONFIG_PATH" <<EOF
 EOF
 }
 
+function is_port_listening() {
+    local port=$1
+    if sudo lsof -i :$port | grep LISTEN >/dev/null 2>&1; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 function show_menu() {
     clear
     echo ""
@@ -109,36 +118,55 @@ function check_internet() {
     read
 }
 
+# --- ابتدای اسکریپت ---
+# سوال برای راه‌اندازی سرور قبل از منو
+if ! pgrep -f $SERVER_SCRIPT > /dev/null; then
+    read -p "آیا سرور راه‌اندازی شود؟ (Y/n): " startans
+    if [[ -z "$startans" || "$startans" =~ ^[Yy]$ ]]; then
+        start_server_bg
+    fi
+fi
+
 while true; do
     show_menu
     read -p "Select an option [1-9]: " choice
     case $choice in
         1)
             start_server_bg
-            echo "Creating new config..."
-            create_config
-            CONFIG_PATH="$PROJECT_DIR/config.json"
-            # ساخت کد ng:// فقط با bash/jq/openssl
-            host=$(jq -r '.host' "$CONFIG_PATH")
-            tcp_port=$(jq -r '.tcp_port' "$CONFIG_PATH")
-            udp_port=$(jq -r '.udp_port' "$CONFIG_PATH")
-            config_id=$(jq -r '.config_id' "$CONFIG_PATH")
-            protocol=$(jq -r '.protocol' "$CONFIG_PATH")
-            certfile=$(jq -r '.certfile' "$CONFIG_PATH")
-            fingerprint=$(openssl x509 -in "$certfile" -noout -fingerprint -sha256 | cut -d'=' -f2 | tr '[:lower:]' '[:upper:]')
-            json=$(jq -n \
-              --arg server "$host" \
-              --argjson tcp_port "$tcp_port" \
-              --argjson udp_port "$udp_port" \
-              --arg config_id "$config_id" \
-              --arg fingerprint "$fingerprint" \
-              --arg protocol "$protocol" \
-              '{server: $server, tcp_port: $tcp_port, udp_port: $udp_port, config_id: $config_id, fingerprint: $fingerprint, protocol: $protocol}'
-            )
-            b64=$(echo -n "$json" | openssl base64 -A | tr '+/' '-_' | tr -d '=')
-            echo "ng://$b64"
-            mkdir -p $CONFIG_DIR
-            echo "ng://$b64" >> $HISTORY_FILE
+            sleep 2
+            tcp_port=$(jq -r '.tcp_port' "$PROJECT_DIR/config.json" 2>/dev/null || echo 443)
+            if is_port_listening "$tcp_port"; then
+                if [ ! -f "$PROJECT_DIR/config.json" ]; then
+                    echo "No config.json found. Creating new config..."
+                    create_config
+                else
+                    echo "Using existing config.json for ng:// generation."
+                fi
+                CONFIG_PATH="$PROJECT_DIR/config.json"
+                # ساخت کد ng:// فقط با bash/jq/openssl
+                host=$(jq -r '.host' "$CONFIG_PATH")
+                tcp_port=$(jq -r '.tcp_port' "$CONFIG_PATH")
+                udp_port=$(jq -r '.udp_port' "$CONFIG_PATH")
+                config_id=$(jq -r '.config_id' "$CONFIG_PATH")
+                protocol=$(jq -r '.protocol' "$CONFIG_PATH")
+                certfile=$(jq -r '.certfile' "$CONFIG_PATH")
+                fingerprint=$(openssl x509 -in "$certfile" -noout -fingerprint -sha256 | cut -d'=' -f2 | tr '[:lower:]' '[:upper:]')
+                json=$(jq -n \
+                  --arg server "$host" \
+                  --argjson tcp_port "$tcp_port" \
+                  --argjson udp_port "$udp_port" \
+                  --arg config_id "$config_id" \
+                  --arg fingerprint "$fingerprint" \
+                  --arg protocol "$protocol" \
+                  '{server: $server, tcp_port: $tcp_port, udp_port: $udp_port, config_id: $config_id, fingerprint: $fingerprint, protocol: $protocol}'
+                )
+                b64=$(echo -n "$json" | openssl base64 -A | tr '+/' '-_' | tr -d '=')
+                echo "ng://$b64"
+                mkdir -p $CONFIG_DIR
+                echo "ng://$b64" >> $HISTORY_FILE
+            else
+                echo "[خطا] سرور روی پورت $tcp_port اجرا نشده است! کانفیگ ساخته نشد."
+            fi
             read -p "Return to menu? (y/n): " back
             if [[ "$back" != "y" && "$back" != "Y" ]]; then
                 echo "Exiting menu."
