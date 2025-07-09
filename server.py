@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from cryptography.hazmat.primitives import hashes
 from cryptography.x509 import load_pem_x509_certificate
 import os
+import time
 # نسخه پروتکل
 # --- تنظیمات ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -15,9 +16,21 @@ CONFIG_PATH = os.path.join(BASE_DIR, 'config.json')
 with open(CONFIG_PATH, 'r') as f:
     config = json.load(f)
 VERSION = config.get('version', '1.0.0')
+# Use separate ports for TCP and UDP
+TCP_PORT = config.get('tcp_port', config.get('port', 443))
+UDP_PORT = config.get('udp_port', config.get('port', 443))
 # endpoint برای دانلود سرتیفیکیت
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import threading
+# --- اضافه کردن: API ثبت کلاینت ---
+from http.server import BaseHTTPRequestHandler
+import json
+
+# حذف کامل منطق ثبت کلاینت و client_id
+# حذف REGISTERED_CLIENTS_PATH و save_registered_client و RegisterClientHandler و serve_register_api
+CONFIG_DEVICE_MAP_PATH = os.path.join(BASE_DIR, 'config_device_map.json')
+
+# حذف فراخوانی serve_register_api() در انتهای فایل
 
 context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 context.load_cert_chain(certfile=config['certfile'], keyfile=config['keyfile'])
@@ -62,20 +75,87 @@ def get_cert_fingerprint(certfile):
 def generate_connection_code():
     info = {
         "server": HOST,
-        "port": PORT,
+        "tcp_port": TCP_PORT,
+        "udp_port": UDP_PORT,
+        "config_id": config.get("config_id", ""),
         "fingerprint": get_cert_fingerprint(config['certfile']),
         "protocol": PROTOCOL
     }
     b64 = base64.urlsafe_b64encode(json.dumps(info).encode()).decode()
     return f"ng://{b64}"
 
+def send_packet_fragmented(sock, packet, addr=None, is_udp=False):
+    size = len(packet)
+    part = size // 3
+    fragments = [packet[0:part], packet[part:2*part], packet[2*part:]]
+    for frag in fragments:
+        if is_udp:
+            sock.sendto(frag, addr)
+        else:
+            sock.sendall(frag)
+        time.sleep(0.025)  # 25ms
+
+def receive_fragments(sock, expected_len, is_udp=False):
+    fragments = []
+    total = 0
+    while len(fragments) < 3 and total < expected_len:
+        if is_udp:
+            frag, _ = sock.recvfrom(expected_len)
+        else:
+            frag = sock.recv(expected_len)
+        fragments.append(frag)
+        total += len(frag)
+    return b''.join(fragments)
+
 # --- مدیریت هر کلاینت ---
+def load_config_device_map():
+    if os.path.exists(CONFIG_DEVICE_MAP_PATH):
+        with open(CONFIG_DEVICE_MAP_PATH, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_config_device_map(mapping):
+    with open(CONFIG_DEVICE_MAP_PATH, 'w') as f:
+        json.dump(mapping, f, indent=2)
+
+def check_and_bind_config_device(config_id, device_id):
+    mapping = load_config_device_map()
+    if config_id in mapping:
+        return mapping[config_id] == device_id  # Only allow if device_id matches
+    else:
+        mapping[config_id] = device_id
+        save_config_device_map(mapping)
+        return True
+
 def handle_client(conn, addr):
     session_key = generate_session_key()
     print(f"[+] New session for {addr}")
     try:
+        # --- انتظار دریافت پیام اولیه شامل config_id و device_id ---
+        initial_data = receive_fragments(conn, 1024)
+        try:
+            initial_json = json.loads(initial_data.decode())
+            config_id = initial_json.get('config_id')
+            device_id = initial_json.get('device_id')
+            if not config_id or not device_id:
+                conn.sendall(b'Error: Missing config_id or device_id')
+                conn.close()
+                print(f"[!] Missing config_id/device_id from {addr}")
+                return
+            if not check_and_bind_config_device(config_id, device_id):
+                conn.sendall(b'Error: Config already bound to another device')
+                conn.close()
+                print(f"[!] Config {config_id} already bound to another device (from {addr})")
+                return
+            print(f"[+] Config {config_id} bound to device {device_id}")
+        except Exception as e:
+            conn.sendall(f'Error: {e}'.encode())
+            conn.close()
+            print(f"[!] Initial JSON parse error from {addr}: {e}")
+            return
+        # --- ادامه منطق قبلی ---
         while True:
-            data = conn.recv(4096)
+            data = receive_fragments(conn, 4096)
             if not data:
                 break
             try:
@@ -83,7 +163,7 @@ def handle_client(conn, addr):
                 print(f"[>] Received from {addr}: {payload}")
                 # پاسخ نمونه (echo)
                 response = build_packet(payload, session_key)
-                conn.sendall(response)
+                send_packet_fragmented(conn, response)
             except Exception as e:
                 print(f"[!] Packet parse error from {addr}: {e}")
                 break
@@ -107,18 +187,19 @@ def serve_cert():
                 self.end_headers()
     t = threading.Thread(target=lambda: HTTPServer(("0.0.0.0", 8080), Handler).serve_forever(), daemon=True)
     t.start()
-serve_cert()
+
+# حذف فراخوانی serve_register_api() در انتهای فایل
 
 def udp_server():
     udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    udp_sock.bind((HOST, PORT))
-    print(f"[UDP] novaguard server listening on {HOST}:{PORT}")
+    udp_sock.bind((HOST, UDP_PORT))
+    print(f"[UDP] novaguard server listening on {HOST}:{UDP_PORT}")
     while True:
         try:
-            data, addr = udp_sock.recvfrom(4096)
+            data, addr = receive_fragments(udp_sock, 4096, is_udp=True), None
             print(f"[UDP] Received from {addr}: {data}")
             # Echo back (for now)
-            udp_sock.sendto(data, addr)
+            send_packet_fragmented(udp_sock, data, addr, is_udp=True)
         except Exception as e:
             print(f"[UDP] Error: {e}")
 
@@ -129,9 +210,9 @@ def main():
     t_udp.start()
     # TCP server as before
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as sock:
-        sock.bind((HOST, PORT))
+        sock.bind((HOST, TCP_PORT))
         sock.listen(100)
-        print(f"[TCP] novaguard server listening on {HOST}:{PORT} (TLS enabled)")
+        print(f"[TCP] novaguard server listening on {HOST}:{TCP_PORT} (TLS enabled)")
         print(f"Connection Code: {generate_connection_code()}")
         with context.wrap_socket(sock, server_side=True) as ssock:
             while True:
@@ -145,3 +226,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    serve_cert()
