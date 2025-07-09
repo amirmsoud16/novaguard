@@ -123,9 +123,13 @@ install_novaguard() {
     # Generate config if not exists
     if [[ ! -f "config.json" ]]; then
         echo "Generating configuration..."
+        
+        # Auto-detect server IP
+        SERVER_IP=$(curl -s ifconfig.me 2>/dev/null || curl -s ipinfo.io/ip 2>/dev/null || hostname -I | awk '{print $1}' 2>/dev/null || echo "0.0.0.0")
+        
         cat > config.json << EOF
 {
-  "host": "0.0.0.0",
+  "host": "$SERVER_IP",
   "tcp_port": 3077,
   "udp_port": 3076,
   "config_id": "novaguard-config-$(date +%s)",
@@ -136,6 +140,7 @@ install_novaguard() {
   "session_id": "session-$(date +%s)"
 }
 EOF
+        echo "Server IP detected: $SERVER_IP"
     fi
 
     # Build the server
