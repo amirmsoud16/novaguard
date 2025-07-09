@@ -117,7 +117,32 @@ while true; do
             echo "Creating new config..."
             create_config
             CONFIG_PATH="$PROJECT_DIR/config.json"
-            CONFIG_CODE=$(python3 -c "import json, base64; from cryptography.hazmat.primitives import hashes; from cryptography.x509 import load_pem_x509_certificate; with open('$CONFIG_PATH') as f: config = json.load(f); def get_cert_fingerprint(certfile): with open(certfile, 'rb') as f: cert = load_pem_x509_certificate(f.read()); fp = cert.fingerprint(hashes.SHA256()); return ':'.join([fp.hex()[i:i+2].upper() for i in range(0, len(fp.hex()), 2)]); info = {'server': config['host'], 'tcp_port': config['tcp_port'], 'udp_port': config['udp_port'], 'config_id': config.get('config_id', ''), 'fingerprint': get_cert_fingerprint(config['certfile']), 'protocol': config.get('protocol', 'novaguard')}; b64 = base64.urlsafe_b64encode(json.dumps(info).encode()).decode(); print(f'ng://{b64}')")
+            CONFIG_CODE=$(python3 -c "
+import json, base64
+from cryptography.hazmat.primitives import hashes
+from cryptography.x509 import load_pem_x509_certificate
+
+with open('$CONFIG_PATH') as f:
+    config = json.load(f)
+
+def get_cert_fingerprint(certfile):
+    with open(certfile, 'rb') as f:
+        cert = load_pem_x509_certificate(f.read())
+    fp = cert.fingerprint(hashes.SHA256())
+    return ':'.join([fp.hex()[i:i+2].upper() for i in range(0, len(fp.hex()), 2)])
+
+info = {
+    'server': config['host'],
+    'tcp_port': config['tcp_port'],
+    'udp_port': config['udp_port'],
+    'config_id': config.get('config_id', ''),
+    'fingerprint': get_cert_fingerprint(config['certfile']),
+    'protocol': config.get('protocol', 'novaguard')
+}
+
+b64 = base64.urlsafe_b64encode(json.dumps(info).encode()).decode()
+print(f'ng://{b64}')
+")
             echo "ng:// config code:"
             echo "$CONFIG_CODE"
             mkdir -p $CONFIG_DIR
