@@ -73,13 +73,15 @@ def get_cert_fingerprint(certfile):
     return ':'.join([fp.hex()[i:i+2].upper() for i in range(0, len(fp.hex()), 2)])
 
 def generate_connection_code():
+    with open(CONFIG_PATH, 'r') as f:
+        config = json.load(f)
     info = {
-        "server": HOST,
-        "tcp_port": TCP_PORT,
-        "udp_port": UDP_PORT,
+        "server": config["host"],
+        "tcp_port": config["tcp_port"],
+        "udp_port": config["udp_port"],
         "config_id": config.get("config_id", ""),
         "fingerprint": get_cert_fingerprint(config['certfile']),
-        "protocol": PROTOCOL
+        "protocol": config.get("protocol", "novaguard")
     }
     b64 = base64.urlsafe_b64encode(json.dumps(info).encode()).decode()
     return f"ng://{b64}"
