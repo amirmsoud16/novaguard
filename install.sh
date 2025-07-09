@@ -6,12 +6,15 @@ set -e
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
+GITHUB_REPO="https://github.com/amirmsoud16/novaguard.git"
 INSTALL_DIR="/opt/novaguard-server"
 SERVICE_FILE="novaguard.service"
 SERVICE_NAME="novaguard"
+TEMP_DIR="/tmp/novaguard-install"
 
 echo -e "${GREEN}NovaGuard Server Installer${NC}"
 echo "================================"
@@ -22,113 +25,224 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-# Check if Go is installed
-if ! command -v go &> /dev/null; then
-    echo -e "${YELLOW}Go is not installed. Installing Go...${NC}"
+# Function to check internet connectivity
+check_internet() {
+    if ! ping -c 1 8.8.8.8 &> /dev/null; then
+        echo -e "${RED}No internet connection detected${NC}"
+        exit 1
+    fi
+}
+
+# Function to install prerequisites
+install_prerequisites() {
+    echo -e "${BLUE}Installing prerequisites...${NC}"
     
-    # Detect OS and install Go
+    # Detect OS and install packages
     if [[ -f /etc/debian_version ]]; then
         # Debian/Ubuntu
         apt update
-        apt install -y golang-go
+        apt install -y git curl wget jq golang-go
     elif [[ -f /etc/redhat-release ]]; then
         # CentOS/RHEL/Fedora
-        yum install -y golang
+        yum install -y git curl wget jq golang
     else
-        echo -e "${RED}Unsupported OS. Please install Go manually.${NC}"
+        echo -e "${YELLOW}Unsupported OS. Please install git, curl, wget, jq, and Go manually.${NC}"
         exit 1
     fi
-fi
+}
 
-# Check Go version
-GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//')
-REQUIRED_VERSION="1.21"
+# Function to download from GitHub
+download_from_github() {
+    echo -e "${BLUE}Downloading NovaGuard from GitHub...${NC}"
+    
+    # Check if git is installed
+    if ! command -v git &> /dev/null; then
+        echo -e "${YELLOW}Git is not installed. Installing prerequisites...${NC}"
+        install_prerequisites
+    fi
+    
+    # Create temp directory
+    rm -rf "$TEMP_DIR"
+    mkdir -p "$TEMP_DIR"
+    cd "$TEMP_DIR"
+    
+    # Clone repository
+    echo "Cloning repository: $GITHUB_REPO"
+    if git clone "$GITHUB_REPO" .; then
+        echo -e "${GREEN}Repository downloaded successfully${NC}"
+    else
+        echo -e "${RED}Failed to download repository${NC}"
+        exit 1
+    fi
+}
 
-if [[ "$(printf '%s\n' "$REQUIRED_VERSION" "$GO_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]]; then
-    echo -e "${RED}Go version $GO_VERSION is too old. Required: $REQUIRED_VERSION or later${NC}"
-    exit 1
-fi
+# Function to install Go if needed
+install_go() {
+    if ! command -v go &> /dev/null; then
+        echo -e "${YELLOW}Go is not installed. Installing Go...${NC}"
+        install_prerequisites
+    fi
 
-echo -e "${GREEN}Go version $GO_VERSION detected${NC}"
+    # Check Go version
+    GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//')
+    REQUIRED_VERSION="1.21"
 
-# Create installation directory
-echo "Creating installation directory..."
-mkdir -p "$INSTALL_DIR"
+    if [[ "$(printf '%s\n' "$REQUIRED_VERSION" "$GO_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]]; then
+        echo -e "${RED}Go version $GO_VERSION is too old. Required: $REQUIRED_VERSION or later${NC}"
+        exit 1
+    fi
 
-# Copy files to installation directory
-echo "Copying files..."
-cp -r . "$INSTALL_DIR/"
-cd "$INSTALL_DIR"
+    echo -e "${GREEN}Go version $GO_VERSION detected${NC}"
+}
 
-# Set permissions
-chmod +x *.sh
-chmod +x novaguard-server
+# Function to install NovaGuard
+install_novaguard() {
+    echo -e "${BLUE}Installing NovaGuard Server...${NC}"
+    
+    # Create installation directory
+    echo "Creating installation directory..."
+    mkdir -p "$INSTALL_DIR"
 
-# Generate certificate if not exists
-if [[ ! -f "novaguard.crt" ]] || [[ ! -f "novaguard.key" ]]; then
-    echo "Generating SSL certificate..."
-    ./generate_cert.sh
-fi
+    # Copy files to installation directory
+    echo "Copying files..."
+    cp -r . "$INSTALL_DIR/"
+    cd "$INSTALL_DIR"
 
-# Generate config if not exists
-if [[ ! -f "config.json" ]]; then
-    echo "Generating configuration..."
-    ./manage.sh generate-config
-fi
+    # Set permissions
+    chmod +x *.sh
+    if [[ -f "novaguard-server" ]]; then
+        chmod +x novaguard-server
+    fi
 
-# Build the server
-echo "Building server..."
-./build.sh
+    # Generate certificate if not exists
+    if [[ ! -f "novaguard.crt" ]] || [[ ! -f "novaguard.key" ]]; then
+        echo "Generating SSL certificate..."
+        ./generate_cert.sh
+    fi
 
-# Install systemd service
-echo "Installing systemd service..."
-cp "$SERVICE_FILE" "/etc/systemd/system/"
-systemctl daemon-reload
-systemctl enable "$SERVICE_NAME"
+    # Generate config if not exists
+    if [[ ! -f "config.json" ]]; then
+        echo "Generating configuration..."
+        cat > config.json << EOF
+{
+  "host": "0.0.0.0",
+  "tcp_port": 3077,
+  "udp_port": 3076,
+  "config_id": "novaguard-config-$(date +%s)",
+  "certfile": "novaguard.crt",
+  "keyfile": "novaguard.key",
+  "protocol": "novaguard-v1",
+  "version": "1.0.0",
+  "session_id": "session-$(date +%s)"
+}
+EOF
+    fi
 
-# Create firewall rules
-echo "Configuring firewall..."
-if command -v ufw &> /dev/null; then
-    # Ubuntu/Debian
-    ufw allow 3077/tcp
-    ufw allow 3076/udp
-    echo -e "${GREEN}UFW rules added${NC}"
-elif command -v firewall-cmd &> /dev/null; then
-    # CentOS/RHEL/Fedora
-    firewall-cmd --permanent --add-port=3077/tcp
-    firewall-cmd --permanent --add-port=3076/udp
-    firewall-cmd --reload
-    echo -e "${GREEN}Firewalld rules added${NC}"
-else
-    echo -e "${YELLOW}No firewall detected. Please configure manually:${NC}"
-    echo "  TCP Port: 3077"
-    echo "  UDP Port: 3076"
-fi
+    # Build the server
+    echo "Building server..."
+    ./build.sh
+}
 
-# Start the service
-echo "Starting NovaGuard service..."
-systemctl start "$SERVICE_NAME"
+# Function to setup systemd service
+setup_systemd() {
+    echo "Installing systemd service..."
+    cp "$SERVICE_FILE" "/etc/systemd/system/"
+    systemctl daemon-reload
+    systemctl enable "$SERVICE_NAME"
+}
 
-# Check if service is running
-if systemctl is-active --quiet "$SERVICE_NAME"; then
-    echo -e "${GREEN}NovaGuard service started successfully${NC}"
-else
-    echo -e "${RED}Failed to start NovaGuard service${NC}"
-    systemctl status "$SERVICE_NAME"
-    exit 1
-fi
+# Function to configure firewall
+configure_firewall() {
+    echo "Configuring firewall..."
+    if command -v ufw &> /dev/null; then
+        # Ubuntu/Debian
+        ufw allow 3077/tcp
+        ufw allow 3076/udp
+        echo -e "${GREEN}UFW rules added${NC}"
+    elif command -v firewall-cmd &> /dev/null; then
+        # CentOS/RHEL/Fedora
+        firewall-cmd --permanent --add-port=3077/tcp
+        firewall-cmd --permanent --add-port=3076/udp
+        firewall-cmd --reload
+        echo -e "${GREEN}Firewalld rules added${NC}"
+    else
+        echo -e "${YELLOW}No firewall detected. Please configure manually:${NC}"
+        echo "  TCP Port: 3077"
+        echo "  UDP Port: 3076"
+    fi
+}
 
-# Show connection code
-echo ""
-echo -e "${GREEN}Installation completed successfully!${NC}"
-echo ""
-echo "Connection Code:"
-./novaguard-server --show-code
-echo ""
-echo "Service commands:"
-echo "  Start:   systemctl start $SERVICE_NAME"
-echo "  Stop:    systemctl stop $SERVICE_NAME"
-echo "  Status:  systemctl status $SERVICE_NAME"
-echo "  Logs:    journalctl -u $SERVICE_NAME -f"
-echo ""
-echo "Installation directory: $INSTALL_DIR" 
+# Function to start service
+start_service() {
+    echo "Starting NovaGuard service..."
+    systemctl start "$SERVICE_NAME"
+
+    # Check if service is running
+    if systemctl is-active --quiet "$SERVICE_NAME"; then
+        echo -e "${GREEN}NovaGuard service started successfully${NC}"
+    else
+        echo -e "${RED}Failed to start NovaGuard service${NC}"
+        systemctl status "$SERVICE_NAME"
+        exit 1
+    fi
+}
+
+# Function to show installation info
+show_info() {
+    echo ""
+    echo -e "${GREEN}Installation completed successfully!${NC}"
+    echo ""
+    echo "Connection Code:"
+    ./novaguard-server --show-code
+    echo ""
+    echo "Service commands:"
+    echo "  Start:   systemctl start $SERVICE_NAME"
+    echo "  Stop:    systemctl stop $SERVICE_NAME"
+    echo "  Status:  systemctl status $SERVICE_NAME"
+    echo "  Logs:    journalctl -u $SERVICE_NAME -f"
+    echo ""
+    echo "Installation directory: $INSTALL_DIR"
+    echo ""
+    echo "To use the interactive menu:"
+    echo "  cd $INSTALL_DIR"
+    echo "  ./nova.sh"
+}
+
+# Function to cleanup
+cleanup() {
+    echo "Cleaning up temporary files..."
+    rm -rf "$TEMP_DIR"
+}
+
+# Main installation process
+main() {
+    # Check internet connectivity
+    check_internet
+    
+    # Download from GitHub
+    download_from_github
+    
+    # Install Go if needed
+    install_go
+    
+    # Install NovaGuard
+    install_novaguard
+    
+    # Setup systemd service
+    setup_systemd
+    
+    # Configure firewall
+    configure_firewall
+    
+    # Start service
+    start_service
+    
+    # Show installation info
+    show_info
+    
+    # Cleanup
+    cleanup
+}
+
+# Run main function
+main 
