@@ -86,9 +86,8 @@ function show_menu() {
     echo "| 4. Restart server                   |"
     echo "| 5. Change server port               |"
     echo "| 6. Exit                             |"
-    echo "| 7. Show current config code         |"
-    echo "| 8. Stop server                      |"
-    echo "| 9. Check server internet access    |"
+    echo "| 7. Stop server                      |"
+    echo "| 8. Check server internet access    |"
     echo "+--------------------------------------+"
     echo ""
 }
@@ -111,15 +110,16 @@ function check_internet() {
 
 while true; do
     show_menu
-    read -p "Select an option [1-9]: " choice
+    read -p "Select an option [1-8]: " choice
     case $choice in
         1)
             start_server_bg
             echo "Creating new config..."
             create_config
-            cd "$(dirname "$0")"
-            CONFIG_CODE=$(python3 generate_code.py)
-            echo -e "\nNew config code:\n$CONFIG_CODE\n"
+            CONFIG_PATH="$PROJECT_DIR/config.json"
+            CONFIG_CODE=$(python3 -c "import json, base64; from cryptography.hazmat.primitives import hashes; from cryptography.x509 import load_pem_x509_certificate; with open('$CONFIG_PATH') as f: config = json.load(f); def get_cert_fingerprint(certfile): with open(certfile, 'rb') as f: cert = load_pem_x509_certificate(f.read()); fp = cert.fingerprint(hashes.SHA256()); return ':'.join([fp.hex()[i:i+2].upper() for i in range(0, len(fp.hex()), 2)]); info = {'server': config['host'], 'tcp_port': config['tcp_port'], 'udp_port': config['udp_port'], 'config_id': config.get('config_id', ''), 'fingerprint': get_cert_fingerprint(config['certfile']), 'protocol': config.get('protocol', 'novaguard')}; b64 = base64.urlsafe_b64encode(json.dumps(info).encode()).decode(); print(f'ng://{b64}')")
+            echo "ng:// config code:"
+            echo "$CONFIG_CODE"
             mkdir -p $CONFIG_DIR
             echo "$CONFIG_CODE" >> $HISTORY_FILE
             read -p "Return to menu? (y/n): " back
@@ -162,17 +162,10 @@ while true; do
             exit 0
             ;;
         7)
-            echo "Current config code:"
-            create_config
-            CONFIG_CODE=$(python3 generate_code.py)
-            echo "$CONFIG_CODE"
-            read -p "Press Enter to return to menu..."
-            ;;
-        8)
             stop_server
             read -p "Press Enter to return to menu..."
             ;;
-        9)
+        8)
             check_internet
             ;;
         *)
