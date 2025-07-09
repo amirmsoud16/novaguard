@@ -8,7 +8,13 @@ if ! command -v go &> /dev/null; then
     exit 1
 fi
 
+# Download and tidy dependencies
+echo "Downloading dependencies..."
+go mod download
+go mod tidy
+
 # Build the server
+echo "Building server..."
 go build -o novaguard-server main.go
 
 if [ $? -eq 0 ]; then
