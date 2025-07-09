@@ -77,6 +77,9 @@ EOF
 
 function is_port_listening() {
     local port=$1
+    if [ -z "$port" ]; then
+        return 1
+    fi
     if sudo lsof -i :$port | grep LISTEN >/dev/null 2>&1; then
         return 0
     else
