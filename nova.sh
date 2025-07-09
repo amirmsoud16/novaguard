@@ -118,7 +118,7 @@ while true; do
             echo "Creating new config..."
             create_config
             cd "$(dirname "$0")"
-            CONFIG_CODE=$(python3 -c 'import server; print(server.generate_connection_code())')
+            CONFIG_CODE=$(python3 generate_code.py)
             echo -e "\nNew config code:\n$CONFIG_CODE\n"
             mkdir -p $CONFIG_DIR
             echo "$CONFIG_CODE" >> $HISTORY_FILE
@@ -164,7 +164,7 @@ while true; do
         7)
             echo "Current config code:"
             create_config
-            CONFIG_CODE=$(python3 -c 'import server; print(server.generate_connection_code())')
+            CONFIG_CODE=$(python3 generate_code.py)
             echo "$CONFIG_CODE"
             read -p "Press Enter to return to menu..."
             ;;
