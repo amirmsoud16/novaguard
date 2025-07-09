@@ -2,6 +2,7 @@
 
 PROJECT_DIR="$(dirname "$0")"
 cd "$PROJECT_DIR"
+export PYTHONPATH="$PROJECT_DIR:$PYTHONPATH"
 CONFIG_DIR="configs"
 SERVER_SCRIPT="server.py"
 CONFIG_FILE="config.json"
