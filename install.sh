@@ -114,20 +114,17 @@ install_novaguard() {
         chmod +x novaguard-server
     fi
 
-    # Generate certificate if not exists
-    if [[ ! -f "novaguard.crt" ]] || [[ ! -f "novaguard.key" ]]; then
-        echo "Generating SSL certificate..."
-        ./generate_cert.sh
-    fi
+    # Generate SSL certificate
+    echo "Generating SSL certificate..."
+    ./generate_cert.sh
 
-    # Generate config if not exists
-    if [[ ! -f "config.json" ]]; then
-        echo "Generating configuration..."
-        
-        # Auto-detect server IP
-        SERVER_IP=$(curl -s ifconfig.me 2>/dev/null || curl -s ipinfo.io/ip 2>/dev/null || hostname -I | awk '{print $1}' 2>/dev/null || echo "0.0.0.0")
-        
-        cat > config.json << EOF
+    # Generate configuration
+    echo "Generating configuration..."
+    
+    # Auto-detect server IP
+    SERVER_IP=$(curl -s ifconfig.me 2>/dev/null || curl -s ipinfo.io/ip 2>/dev/null || hostname -I | awk '{print $1}' 2>/dev/null || echo "0.0.0.0")
+    
+    cat > config.json << EOF
 {
   "host": "$SERVER_IP",
   "tcp_port": 3077,
@@ -140,20 +137,36 @@ install_novaguard() {
   "session_id": "session-$(date +%s)"
 }
 EOF
-        echo "Server IP detected: $SERVER_IP"
-    fi
+    echo "Server IP detected: $SERVER_IP"
 
     # Build the server
     echo "Building server..."
+    
+    # Download and tidy dependencies first
+    echo "Downloading Go dependencies..."
+    go mod download
+    go mod tidy
+    
+    # Then build
     ./build.sh
 }
 
 # Function to setup systemd service
 setup_systemd() {
     echo "Installing systemd service..."
+    
+    # Remove old service file if exists
+    if [[ -f "/etc/systemd/system/$SERVICE_FILE" ]]; then
+        echo "Removing old service file..."
+        rm -f "/etc/systemd/system/$SERVICE_FILE"
+    fi
+    
+    # Install new service
     cp "$SERVICE_FILE" "/etc/systemd/system/"
     systemctl daemon-reload
     systemctl enable "$SERVICE_NAME"
+    
+    echo "Systemd service installed successfully"
 }
 
 # Function to configure firewall
