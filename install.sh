@@ -58,7 +58,7 @@ pip install -r requirements.txt
 deactivate
 
 # 7. تولید گواهی SSL اگر وجود ندارد
-if [ ! -f novaguard.crt ] || [ ! -f novaguard.key ]; then
+if [ ! -f /root/novaguard/novaguard.crt ] || [ ! -f /root/novaguard/novaguard.key ]; then
     bash generate_cert.sh
 else
     echo "[i] SSL certificate already exists."
@@ -84,8 +84,8 @@ cat > "$CONFIG_PATH" <<EOF
   "udp_port": $UDP_PORT,
   "config_id": "$CONFIG_ID",
   "session_id": "$SESSION_ID",
-  "certfile": "novaguard.crt",
-  "keyfile": "novaguard.key",
+  "certfile": "/root/novaguard/novaguard.crt",
+  "keyfile": "/root/novaguard/novaguard.key",
   "protocol": "novaguard-v1",
   "version": "1.0.0"
 }
@@ -104,7 +104,7 @@ def serve_cert():
                 self.send_response(200)
                 self.send_header('Content-type', 'application/x-x509-ca-cert')
                 self.end_headers()
-                with open('novaguard.crt', 'rb') as f:
+                with open('/root/novaguard/novaguard.crt', 'rb') as f:
                     self.wfile.write(f.read())
             else:
                 self.send_response(404)
