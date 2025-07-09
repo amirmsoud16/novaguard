@@ -80,8 +80,8 @@ SESSION_ID=$(cat /proc/sys/kernel/random/uuid)
 cat > "$CONFIG_PATH" <<EOF
 {
   "host": "$SERVER_IP",
-  "tcp_port": $TCP_PORT,
-  "udp_port": $UDP_PORT,
+  "tcp_port": 8443,
+  "udp_port": 1195,
   "config_id": "$CONFIG_ID",
   "session_id": "$SESSION_ID",
   "certfile": "/root/novaguard/novaguard.crt",
