@@ -169,6 +169,8 @@ while true; do
                 mkdir -p $CONFIG_DIR
                 echo "ng://$b64" >> $HISTORY_FILE
             else
+                echo "[دیباگ] مقدار tcp_port: $tcp_port"
+                echo "[دیباگ] مقدار udp_port: $udp_port"
                 echo "[خطا] سرور روی پورت $tcp_port یا $udp_port اجرا نشده است! کانفیگ ساخته نشد."
             fi
             read -p "Return to menu? (y/n): " back
