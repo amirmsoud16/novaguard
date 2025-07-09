@@ -73,16 +73,18 @@ SERVER_IP=$(curl -s ifconfig.me)
 if [ -z "$SERVER_IP" ]; then
     SERVER_IP=$(hostname -I | awk '{print $1}')
 fi
+TCP_PORT=443
+UDP_PORT=443
 cat > "$CONFIG_PATH" <<EOF
 {
   "host": "$SERVER_IP",
-  "port": 443,
+  "tcp_port": $TCP_PORT,
+  "udp_port": $UDP_PORT,
   "certfile": "novaguard.crt",
   "keyfile": "novaguard.key",
   "protocol": "novaguard-v1",
   "version": "1.0.0"
 }
-
 EOF
 echo "[i] فایل کانفیک با IP $SERVER_IP ساخته شد: $CONFIG_PATH"
 # ایجاد endpoint برای دانلود سرتیفیکیت
