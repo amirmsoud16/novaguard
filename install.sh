@@ -75,11 +75,15 @@ if [ -z "$SERVER_IP" ]; then
 fi
 TCP_PORT=443
 UDP_PORT=443
+CONFIG_ID=$(cat /proc/sys/kernel/random/uuid)
+SESSION_ID=$(cat /proc/sys/kernel/random/uuid)
 cat > "$CONFIG_PATH" <<EOF
 {
   "host": "$SERVER_IP",
   "tcp_port": $TCP_PORT,
   "udp_port": $UDP_PORT,
+  "config_id": "$CONFIG_ID",
+  "session_id": "$SESSION_ID",
   "certfile": "novaguard.crt",
   "keyfile": "novaguard.key",
   "protocol": "novaguard-v1",
