@@ -88,6 +88,7 @@ function show_menu() {
     echo "| 6. Exit                             |"
     echo "| 7. Stop server                      |"
     echo "| 8. Check server internet access    |"
+    echo "| 9. Start server                    |"
     echo "+--------------------------------------+"
     echo ""
 }
@@ -110,7 +111,7 @@ function check_internet() {
 
 while true; do
     show_menu
-    read -p "Select an option [1-8]: " choice
+    read -p "Select an option [1-9]: " choice
     case $choice in
         1)
             start_server_bg
@@ -183,6 +184,10 @@ while true; do
             ;;
         8)
             check_internet
+            ;;
+        9)
+            start_server_bg
+            read -p "Press Enter to return to menu..."
             ;;
         *)
             echo "Invalid option!"
