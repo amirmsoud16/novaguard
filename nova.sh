@@ -54,12 +54,16 @@ SERVER_IP=$(curl -s ifconfig.me)
 if [ -z "$SERVER_IP" ]; then
     SERVER_IP=$(hostname -I | awk '{print $1}')
 fi
-PORT=$(( RANDOM % 101 + 3000 ))
+TCP_PORT=443
+UDP_PORT=443
+CONFIG_ID=$(cat /proc/sys/kernel/random/uuid)
 SESSION_ID=$(cat /proc/sys/kernel/random/uuid)
 cat > "$CONFIG_PATH" <<EOF
 {
   "host": "$SERVER_IP",
-  "port": $PORT,
+  "tcp_port": $TCP_PORT,
+  "udp_port": $UDP_PORT,
+  "config_id": "$CONFIG_ID",
   "certfile": "novaguard.crt",
   "keyfile": "novaguard.key",
   "protocol": "novaguard-v1",
@@ -83,6 +87,7 @@ function show_menu() {
     echo "| 6. Exit                             |"
     echo "| 7. Show current config code         |"
     echo "| 8. Stop server                      |"
+    echo "| 9. Check server internet access    |"
     echo "+--------------------------------------+"
     echo ""
 }
@@ -92,14 +97,26 @@ function restart_server() {
     start_server_bg
 }
 
+function check_internet() {
+    echo "Checking internet connectivity..."
+    if ping -c 2 8.8.8.8 >/dev/null 2>&1; then
+        echo "[OK] Server has internet access."
+    else
+        echo "[FAIL] Server does NOT have internet access!"
+    fi
+    echo "Press Enter to return to menu..."
+    read
+}
+
 while true; do
     show_menu
-    read -p "Select an option [1-8]: " choice
+    read -p "Select an option [1-9]: " choice
     case $choice in
         1)
             start_server_bg
             echo "Creating new config..."
             create_config
+            cd "$(dirname "$0")"
             CONFIG_CODE=$(python3 -c 'import server; print(server.generate_connection_code())')
             echo -e "\nNew config code:\n$CONFIG_CODE\n"
             mkdir -p $CONFIG_DIR
@@ -153,6 +170,9 @@ while true; do
         8)
             stop_server
             read -p "Press Enter to return to menu..."
+            ;;
+        9)
+            check_internet
             ;;
         *)
             echo "Invalid option!"
