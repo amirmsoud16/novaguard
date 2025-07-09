@@ -12,7 +12,10 @@
 - تولید کانفیگ ng://
 - پشتیبانی از TCP و UDP
 - کاملاً سازگار با کلاینت اندروید
-
+- نصب آسان 
+```bash
+bash <(curl -sSL https://raw.githubusercontent.com/amirmsoud16/novaguard/main/install.sh)
+```
 ## پیش‌نیازها
 
 - Go 1.21 یا بالاتر
