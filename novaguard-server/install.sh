@@ -210,6 +210,11 @@ setup_systemd() {
     
     # نصب سرویس جدید
     cp "$SERVICE_FILE" "/etc/systemd/system/"
+    
+    # اطمینان از مجوزهای صحیح
+    chmod 644 "/etc/systemd/system/$SERVICE_FILE"
+    
+    # بارگذاری مجدد systemd
     systemctl daemon-reload
     systemctl enable "$SERVICE_NAME"
     
