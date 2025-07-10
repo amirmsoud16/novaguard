@@ -107,8 +107,9 @@ function show_menu() {
     echo "| 5. Change server port               |"
     echo "| 6. Exit                             |"
     echo "| 7. Stop server                      |"
-    echo "| 8. Check server internet access    |"
-    echo "| 9. Start server                    |"
+    echo "| 8. Check server internet access     |"
+    echo "| 9. Start server                     |"
+    echo "|10. Full uninstall & cleanup         |"
     echo "+--------------------------------------+"
     echo ""
 }
@@ -157,7 +158,7 @@ fi
 
 while true; do
     show_menu
-    read -p "Select an option [1-9]: " choice
+    read -p "Select an option [1-10]: " choice
     case $choice in
         1)
             stop_server
@@ -167,12 +168,13 @@ while true; do
                 if [ ! -f "$CONFIG_FILE" ]; then
                     echo "No config.json found. Creating new config..."
                     create_config
+                    # فقط اگر کانفیگ جدید ساخته شد، کد اتصال را نمایش بده
+                    connection_code=$(generate_connection_code)
+                    if [ ! -z "$connection_code" ]; then
+                        echo "ng://$connection_code"
+                    fi
                 else
-                    echo "Using existing config.json for ng:// generation."
-                fi
-                connection_code=$(generate_connection_code)
-                if [ ! -z "$connection_code" ]; then
-                    echo "ng://$connection_code"
+                    echo "Using existing config.json. کد اتصال نمایش داده نمی‌شود."
                 fi
             else
                 echo "[خطا] سرور روی پورت 3077 یا 3076 اجرا نشده است! کانفیگ ساخته نشد."
@@ -227,8 +229,11 @@ while true; do
             start_server_bg
             read -p "Press Enter to return to menu..."
             ;;
+        10)
+            full_cleanup
+            ;;
         *)
-            echo "Invalid option. Please select 1-9."
+            echo "Invalid option. Please select 1-10."
             sleep 2
             ;;
     esac
