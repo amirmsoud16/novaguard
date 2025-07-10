@@ -89,136 +89,98 @@ func main() {
 	flag.BoolVar(&showCodeOnly, "show-code", false, "Show connection code and exit")
 	flag.Parse()
 
-	// Load configuration
-	config, err := loadConfig()
-	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
-	}
-
-	// If only showing code, do that and exit
-	if showCodeOnly {
-		connectionCode := generateConnectionCode(config)
-		fmt.Println(connectionCode)
-		return
+	var configs []NovaGuardConfig
+	if _, err := os.Stat("configs.json"); err == nil {
+		// اگر configs.json وجود داشت، همه کانفیگ‌ها را بخوان
+		data, err := os.ReadFile("configs.json")
+		if err != nil {
+			log.Fatalf("Failed to read configs.json: %v", err)
+		}
+		if err := json.Unmarshal(data, &configs); err != nil {
+			log.Fatalf("Failed to parse configs.json: %v", err)
+		}
+	} else {
+		// اگر نبود، فقط config.json را بخوان
+		config, err := loadConfig()
+		if err != nil {
+			log.Fatalf("Failed to load config: %v", err)
+		}
+		configs = append(configs, *config)
 	}
 
 	// Load device mapping
 	deviceMap = loadDeviceMapping()
 
-	// Setup TLS
-	tlsConfig, err := setupTLS(config.CertFile, config.KeyFile)
+	// Setup TLS (فقط یک بار کافی است)
+	certFile := configs[0].CertFile
+	keyFile := configs[0].KeyFile
+	if certFile == "" { certFile = "novaguard.crt" }
+	if keyFile == "" { keyFile = "novaguard.key" }
+	tlsConfig, err := setupTLS(certFile, keyFile)
 	if err != nil {
 		log.Fatalf("Failed to setup TLS: %v", err)
 	}
 
-	// Create server
-	server = &Server{
-		config:    config,
-		tlsConfig: tlsConfig,
-		sessions:  make(map[string]*ClientSession),
-		shutdown:  make(chan struct{}),
+	// Setup signal handling for graceful shutdown
+	shutdown := make(chan struct{})
+	setupSignalHandlingCustom(shutdown)
+
+	// برای هر کانفیگ یک goroutine برای TCP و یک goroutine برای UDP راه‌اندازی کن
+	for _, cfg := range configs {
+		go startTCPServerOnPort(cfg.TCPPort, tlsConfig, shutdown)
+		go startUDPServerOnPort(cfg.UDPPort, shutdown)
 	}
 
-	// Setup signal handling for graceful shutdown
-	setupSignalHandling()
+	// Start session cleanup goroutine (مثل قبل)
+	go sessionCleanupCustom(shutdown)
 
-	// Start TCP server
-	go startTCPServer()
-
-	// Start UDP server
-	go startUDPServer()
-
-	// Start session cleanup goroutine
-	go sessionCleanup()
-
-	// Generate and display connection code
-	connectionCode := generateConnectionCode(config)
 	fmt.Printf("NovaGuard Server started\n")
-	fmt.Printf("Connection Code: %s\n", connectionCode)
-	fmt.Printf("TCP Port: %d, UDP Port: %d\n", config.TCPPort, config.UDPPort)
+	for _, cfg := range configs {
+		fmt.Printf("TCP Port: %d, UDP Port: %d\n", cfg.TCPPort, cfg.UDPPort)
+	}
 	fmt.Printf("Press Ctrl+C to stop the server\n")
 
 	// Keep server running
-	<-server.shutdown
+	<-shutdown
 	fmt.Println("\nShutting down server...")
 }
 
-func setupSignalHandling() {
+// نسخه جدید setupSignalHandling که کانال shutdown را می‌گیرد
+func setupSignalHandlingCustom(shutdown chan struct{}) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	
 	go func() {
 		<-sigChan
-		close(server.shutdown)
+		close(shutdown)
 	}()
 }
 
-func sessionCleanup() {
+// نسخه جدید sessionCleanup که کانال shutdown را می‌گیرد
+func sessionCleanupCustom(shutdown chan struct{}) {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
-
 	for {
 		select {
 		case <-ticker.C:
 			cleanupOldSessions()
-		case <-server.shutdown:
+		case <-shutdown:
 			return
 		}
 	}
 }
 
-func cleanupOldSessions() {
-	server.sessionsMu.Lock()
-	defer server.sessionsMu.Unlock()
-
-	now := time.Now()
-	for configID, session := range server.sessions {
-		// Remove sessions older than 1 hour
-		if now.Sub(session.createdAt) > time.Hour {
-			log.Printf("Cleaning up old session: %s", configID)
-			delete(server.sessions, configID)
-		}
-	}
-}
-
-func loadConfig() (*NovaGuardConfig, error) {
-	data, err := os.ReadFile("config.json")
+// سرور TCP روی پورت دلخواه
+func startTCPServerOnPort(port int, tlsConfig *tls.Config, shutdown chan struct{}) {
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config.json: %v", err)
-	}
-
-	var config NovaGuardConfig
-	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse config.json: %v", err)
-	}
-
-	return &config, nil
-}
-
-func setupTLS(certFile, keyFile string) (*tls.Config, error) {
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load certificate: %v", err)
-	}
-
-	return &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		MinVersion:   tls.VersionTLS12,
-	}, nil
-}
-
-func startTCPServer() {
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", server.config.TCPPort))
-	if err != nil {
-		log.Fatalf("Failed to start TCP server: %v", err)
+		log.Printf("Failed to start TCP server on port %d: %v", port, err)
+		return
 	}
 	defer listener.Close()
-
-	log.Printf("TCP server listening on port %d", server.config.TCPPort)
-
+	log.Printf("TCP server listening on port %d", port)
 	for {
 		select {
-		case <-server.shutdown:
+		case <-shutdown:
 			return
 		default:
 			conn, err := listener.Accept()
@@ -226,26 +188,25 @@ func startTCPServer() {
 				log.Printf("Failed to accept connection: %v", err)
 				continue
 			}
-
 			go handleTCPClient(conn)
 		}
 	}
 }
 
-func startUDPServer() {
-	addr := fmt.Sprintf(":%d", server.config.UDPPort)
+// سرور UDP روی پورت دلخواه
+func startUDPServerOnPort(port int, shutdown chan struct{}) {
+	addr := fmt.Sprintf(":%d", port)
 	conn, err := net.ListenPacket("udp", addr)
 	if err != nil {
-		log.Fatalf("Failed to start UDP server: %v", err)
+		log.Printf("Failed to start UDP server on port %d: %v", port, err)
+		return
 	}
 	defer conn.Close()
-
-	log.Printf("UDP server listening on port %d", server.config.UDPPort)
-
+	log.Printf("UDP server listening on port %d", port)
 	buffer := make([]byte, 4096)
 	for {
 		select {
-		case <-server.shutdown:
+		case <-shutdown:
 			return
 		default:
 			conn.SetReadDeadline(time.Now().Add(1 * time.Second))
@@ -257,7 +218,6 @@ func startUDPServer() {
 				log.Printf("UDP read error: %v", err)
 				continue
 			}
-
 			go handleUDPPacket(conn, clientAddr, buffer[:n])
 		}
 	}
