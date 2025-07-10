@@ -580,3 +580,46 @@ func getCertFingerprint(certFile string) (string, error) {
 
 	return result, nil
 } 
+
+// --- توابع مورد نیاز برای رفع خطای undefined ---
+
+// خواندن config.json به صورت تکی
+func loadConfig() (*NovaGuardConfig, error) {
+	data, err := os.ReadFile("config.json")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config.json: %v", err)
+	}
+	var config NovaGuardConfig
+	if err := json.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse config.json: %v", err)
+	}
+	return &config, nil
+}
+
+// راه‌اندازی TLS با فایل‌های گواهی
+func setupTLS(certFile, keyFile string) (*tls.Config, error) {
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load certificate: %v", err)
+	}
+	return &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		MinVersion:   tls.VersionTLS12,
+	}, nil
+}
+
+// پاک‌سازی سشن‌های قدیمی
+func cleanupOldSessions() {
+	if server == nil {
+		return
+	}
+	server.sessionsMu.Lock()
+	defer server.sessionsMu.Unlock()
+	now := time.Now()
+	for configID, session := range server.sessions {
+		if now.Sub(session.createdAt) > time.Hour {
+			log.Printf("Cleaning up old session: %s", configID)
+			delete(server.sessions, configID)
+		}
+	}
+} 
