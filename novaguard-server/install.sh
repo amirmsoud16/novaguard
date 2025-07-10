@@ -312,9 +312,17 @@ main() {
     if [ -f "nova.sh" ]; then
         chmod +x nova.sh
     fi
+    
+    # ایجاد symlink برای دستور novavpn
+    echo "ایجاد symlink برای دستور novavpn..."
+    ln -sf "$INSTALL_DIR/nova.sh" /usr/local/bin/novavpn
+    chmod +x /usr/local/bin/novavpn
+    
     echo ""
     echo -e "${GREEN}نصب با موفقیت انجام شد!${NC}"
     echo "در حال ورود به منوی تعاملی..."
+    echo ""
+    echo "برای استفاده از منو در آینده، کافیست دستور novavpn را اجرا کنید."
     sleep 2
     exec bash ./nova.sh
     # پاک‌سازی
