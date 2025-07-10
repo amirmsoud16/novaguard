@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  novaguard-server:
+    build: .
+    container_name: novaguard-server
+    restart: unless-stopped
+    ports:
+      - "3077:3077/tcp"
+      - "3076:3076/udp"
+    volumes:
+      - ./data:/app/data
+      - ./configs:/app/configs
+      - ./config.json:/app/config.json:ro
+      - ./novaguard.crt:/app/novaguard.crt:ro
+      - ./novaguard.key:/app/novaguard.key:ro
+    environment:
+      - TZ=Asia/Tehran
+    networks:
+      - novaguard-network
+    healthcheck:
+      test: ["CMD", "netstat", "-tuln", "|", "grep", ":3077"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  novaguard-network:
+    driver: bridge 
