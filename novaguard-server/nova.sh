@@ -41,17 +41,50 @@ function stop_server() {
 }
 
 function change_port() {
-    read -p "Enter new port: " newport
-    if [[ ! $newport =~ ^[0-9]+$ ]]; then
-        echo "Invalid port!"
-        return
-    fi
+    echo "کدام پورت را می‌خواهید تغییر دهید؟"
+    echo "1. TCP"
+    echo "2. UDP"
+    echo "3. هر دو"
+    read -p "انتخاب شما (1/2/3): " port_choice
+
     if [ -f $CONFIG_FILE ]; then
-        jq ".tcp_port = $newport" $CONFIG_FILE > tmp.json && mv tmp.json $CONFIG_FILE
-        echo "Port changed to $newport."
+        case $port_choice in
+            1)
+                read -p "پورت جدید TCP را وارد کنید: " newtcp
+                if [[ $newtcp =~ ^[0-9]+$ ]]; then
+                    jq ".tcp_port = $newtcp" $CONFIG_FILE > tmp.json && mv tmp.json $CONFIG_FILE
+                    echo "TCP port changed to $newtcp."
+                else
+                    echo "پورت نامعتبر!"
+                fi
+                ;;
+            2)
+                read -p "پورت جدید UDP را وارد کنید: " newudp
+                if [[ $newudp =~ ^[0-9]+$ ]]; then
+                    jq ".udp_port = $newudp" $CONFIG_FILE > tmp.json && mv tmp.json $CONFIG_FILE
+                    echo "UDP port changed to $newudp."
+                else
+                    echo "پورت نامعتبر!"
+                fi
+                ;;
+            3)
+                read -p "پورت جدید TCP را وارد کنید: " newtcp
+                read -p "پورت جدید UDP را وارد کنید: " newudp
+                if [[ $newtcp =~ ^[0-9]+$ && $newudp =~ ^[0-9]+$ ]]; then
+                    jq ".tcp_port = $newtcp | .udp_port = $newudp" $CONFIG_FILE > tmp.json && mv tmp.json $CONFIG_FILE
+                    echo "TCP port changed to $newtcp."
+                    echo "UDP port changed to $newudp."
+                else
+                    echo "پورت نامعتبر!"
+                fi
+                ;;
+            *)
+                echo "انتخاب نامعتبر!"
+                ;;
+        esac
         restart_server
     else
-        echo "config.json not found!"
+        echo "config.json پیدا نشد!"
     fi
 }
 
