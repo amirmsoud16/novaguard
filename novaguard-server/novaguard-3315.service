@@ -6,8 +6,8 @@ Wants=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/usr/local/novaguard-server
-ExecStart=/usr/local/novaguard-server/novaguard-server
+WorkingDirectory=/usr/local/novaguard-3315
+ExecStart=/usr/local/novaguard-3315/novaguard-server
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=5
@@ -20,7 +20,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/usr/local/novaguard-server
+ReadWritePaths=/usr/local/novaguard-3315
 
 [Install]
 WantedBy=multi-user.target 
