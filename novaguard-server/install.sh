@@ -73,18 +73,7 @@ download_from_github() {
     echo "کلون کردن مخزن: $GITHUB_REPO"
     if git clone "$GITHUB_REPO" .; then
         echo -e "${GREEN}مخزن با موفقیت دانلود شد${NC}"
-        # ساخت پروژه بعد از کلون
-        if [[ -f "build.sh" ]]; then
-            ./build.sh
-        else
-            go build -o novaguard-server main.go
-        fi
-        # کپی فایل اجرایی به مسیر نصب با نام صحیح
-        if [[ -f "novaguard-server" ]]; then
-            mkdir -p /usr/local/novaguard-3315
-            cp novaguard-server /usr/local/novaguard-3315/novaguard-server
-            chmod +x /usr/local/novaguard-3315/novaguard-server
-        fi
+        # (کد build و کپی novaguard-server حذف شد)
     else
         echo -e "${RED}خطا در دانلود مخزن${NC}"
         exit 1
