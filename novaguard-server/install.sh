@@ -191,8 +191,8 @@ EOF
         go build -o novaguard-server main.go
     fi
 
-    # کپی فایل اجرایی به مسیر نصب با نام صحیح
-    if [[ -f "novaguard-server" ]]; then
+    # کپی فایل اجرایی به مسیر نصب با نام صحیح (فقط اگر مسیر فعلی با مسیر نصب فرق داشت)
+    if [[ -f "novaguard-server" && "$(pwd)" != "$INSTALL_DIR" ]]; then
         cp novaguard-server "$INSTALL_DIR/novaguard-server"
         chmod +x "$INSTALL_DIR/novaguard-server"
     fi
