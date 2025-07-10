@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -594,8 +595,9 @@ func getCertFingerprint(certFile string) (string, error) {
 		return "", err
 	}
 
-	// Get SHA256 fingerprint
-	fingerprint := cert.Fingerprint
+	// Calculate SHA256 fingerprint manually
+	hash := sha256.Sum256(cert.Raw)
+	fingerprint := hash[:]
 	if len(fingerprint) < 16 {
 		return "", fmt.Errorf("invalid fingerprint length")
 	}
