@@ -21,7 +21,7 @@
 ## نصب و راه‌اندازی
 *نصب آسان
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/amirmsoud16/novaguard/main/novaguard-server/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/amirmsoud16/novaguard/main/install.sh)
 ```
 1. **تولید گواهی SSL:**
 ```bash
