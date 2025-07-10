@@ -323,7 +323,7 @@ main() {
     cleanup
 }
 
-# حذف کامل فایل‌ها و سرویس‌های قبلی برای نصب تمیز
+# حذف کامل نصب قبلی برای نصب تمیز
 if systemctl is-active --quiet novaguard 2>/dev/null; then
     echo "Stopping old systemd service..."
     systemctl stop novaguard 2>/dev/null
@@ -338,31 +338,19 @@ if [ -f "/etc/systemd/system/novaguard.service" ]; then
     systemctl daemon-reload
 fi
 
-# حذف فایل‌های اجرایی و اسکریپت و کانفیگ و گواهی و لاگ و PID
-CLEAN_PATHS=(
-    "$INSTALL_DIR/novaguard-server"
-    "$INSTALL_DIR/nova.sh"
-    "$INSTALL_DIR/build.sh"
-    "$INSTALL_DIR/generate_cert.sh"
-    "$INSTALL_DIR/manage.sh"
-    "$INSTALL_DIR/go.mod"
-    "$INSTALL_DIR/go.sum"
-    "$INSTALL_DIR/main.go"
-    "$INSTALL_DIR/config.json"
-    "$INSTALL_DIR/novaguard.crt"
-    "$INSTALL_DIR/novaguard.key"
-    "$INSTALL_DIR/novaguard-server.pid"
-    "$INSTALL_DIR/novaguard-server.log"
-    "$INSTALL_DIR/configs"
-)
-for f in "${CLEAN_PATHS[@]}"; do
-    [ -e "$f" ] && rm -rf "$f"
-done
-
 # حذف symlink قبلی novavpn
 if [ -L "/usr/local/bin/novavpn" ]; then
     rm -f /usr/local/bin/novavpn
 fi
+
+# حذف کامل دایرکتوری نصب (و همه فایل‌های داخل آن)
+if [ -d "$INSTALL_DIR" ]; then
+    echo "Removing old install directory: $INSTALL_DIR"
+    rm -rf "$INSTALL_DIR"
+fi
+
+# اطمینان از ساخت مجدد دایرکتوری نصب
+mkdir -p "$INSTALL_DIR"
 
 # اجرای تابع اصلی
 main 
