@@ -262,11 +262,7 @@ show_info() {
     echo ""
     echo -e "${GREEN}نصب با موفقیت انجام شد!${NC}"
     echo ""
-    if [[ -f "novaguard-server" ]]; then
-        echo "کد اتصال:"
-        ./novaguard-server --show-code 2>/dev/null || echo "برای مشاهده کد اتصال: ./novaguard-server --show-code"
-    fi
-    echo ""
+    # حذف نمایش کد اتصال
     echo "دستورات سرویس:"
     echo "  شروع:   systemctl start $SERVICE_NAME"
     echo "  توقف:    systemctl stop $SERVICE_NAME"
