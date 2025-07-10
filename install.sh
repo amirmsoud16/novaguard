@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 GITHUB_REPO="https://github.com/amirmsoud16/novaguard.git"
-INSTALL_DIR="/opt/novaguard-server"
+INSTALL_DIR="/root/novaguard-server"
 SERVICE_FILE="novaguard.service"
 SERVICE_NAME="novaguard"
 TEMP_DIR="/tmp/novaguard-install"
