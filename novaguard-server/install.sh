@@ -190,6 +190,12 @@ EOF
     else
         go build -o novaguard-server main.go
     fi
+
+    # کپی فایل اجرایی به مسیر نصب با نام صحیح
+    if [[ -f "novaguard-server" ]]; then
+        cp novaguard-server "$INSTALL_DIR/novaguard-server"
+        chmod +x "$INSTALL_DIR/novaguard-server"
+    fi
 }
 
 # تابع نصب سرویس systemd
