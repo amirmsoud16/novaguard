@@ -250,6 +250,38 @@ EOF
         fi
     }
 
+    function full_cleanup() {
+        echo "⚠️  هشدار: این عملیات همه فایل‌ها، سرویس‌ها و منوی novavpn را حذف می‌کند!"
+        read -p "آیا مطمئن هستید؟ (yes/NO): " confirm
+        if [[ "$confirm" == "yes" ]]; then
+            # توقف و حذف سرویس systemd
+            if systemctl is-active --quiet novaguard 2>/dev/null; then
+                systemctl stop novaguard 2>/dev/null
+            fi
+            if systemctl is-enabled --quiet novaguard 2>/dev/null; then
+                systemctl disable novaguard 2>/dev/null
+            fi
+            if [ -f "/etc/systemd/system/novaguard.service" ]; then
+                rm -f /etc/systemd/system/novaguard.service
+                systemctl daemon-reload
+            fi
+            # حذف symlink novavpn
+            if [ -L "/usr/local/bin/novavpn" ]; then
+                rm -f /usr/local/bin/novavpn
+            fi
+            # حذف کامل دایرکتوری نصب
+            INSTALL_DIR="/usr/local/novaguard-server"
+            if [ -d "$INSTALL_DIR" ]; then
+                rm -rf "$INSTALL_DIR"
+            fi
+            echo "حذف کامل پروتوکل با موفقیت انجام شد ✅"
+            exit 0
+        else
+            echo "لغو شد."
+        fi
+        read -p "Press Enter to return to menu..."
+    }
+
     # اگر سرور اجرا نمی‌شود، آن را در پس‌زمینه اجرا کن
     if ! is_server_running; then
         start_server_bg
