@@ -129,12 +129,17 @@ if [[ "$SCRIPT_NAME" == "novavpn" || "$SCRIPT_NAME" == "nova.sh" ]]; then
         if [[ $input_udp =~ ^[0-9]+$ ]]; then
             udp_port=$input_udp
         fi
-        # ساخت config.json با هر دو پورت
+        # مقداردهی یکتای config_id و session_id
+        CONFIG_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen || echo "config-$(date +%s)")
+        SESSION_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen || echo "session-$(date +%s)")
+        # ساخت config.json با هر دو پورت و شناسه یکتا
         cat > config.json << EOF
 {
   "server": "$(hostname -I | awk '{print $1}')",
   "tcp_port": $tcp_port,
   "udp_port": $udp_port,
+  "config_id": "$CONFIG_ID",
+  "session_id": "$SESSION_ID",
   "protocol": "novaguard-v1",
   "encryption": "chacha20-poly1305",
   "version": "1.0.0",
@@ -474,12 +479,17 @@ function create_config() {
     if [[ $input_udp =~ ^[0-9]+$ ]]; then
         udp_port=$input_udp
     fi
-    # ساخت config.json با هر دو پورت
+    # مقداردهی یکتای config_id و session_id
+    CONFIG_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen || echo "config-$(date +%s)")
+    SESSION_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen || echo "session-$(date +%s)")
+    # ساخت config.json با هر دو پورت و شناسه یکتا
     cat > config.json << EOF
 {
   "server": "$(hostname -I | awk '{print $1}')",
   "tcp_port": $tcp_port,
   "udp_port": $udp_port,
+  "config_id": "$CONFIG_ID",
+  "session_id": "$SESSION_ID",
   "protocol": "novaguard-v1",
   "encryption": "chacha20-poly1305",
   "version": "1.0.0",
