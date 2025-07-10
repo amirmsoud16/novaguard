@@ -108,7 +108,11 @@ install_novaguard() {
 
     # کپی فایل‌ها به دایرکتوری نصب
     echo "کپی فایل‌ها..."
-    cp -r . "$INSTALL_DIR/"
+    if [[ -d "novaguard-server" ]]; then
+        cp -r novaguard-server/* "$INSTALL_DIR/"
+    else
+        cp -r . "$INSTALL_DIR/"
+    fi
     cd "$INSTALL_DIR"
 
     # بررسی وجود فایل‌های ضروری
