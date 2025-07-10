@@ -251,26 +251,30 @@ EOF
     }
 
     function full_cleanup() {
-        echo "⚠️  هشدار: این عملیات همه فایل‌ها، سرویس‌ها و منوی novavpn را حذف می‌کند!"
+        NOVAGUARD_ID=3315
+        INSTALL_DIR="/usr/local/novaguard-$NOVAGUARD_ID"
+        SERVICE_FILE="novaguard-$NOVAGUARD_ID.service"
+        SERVICE_NAME="novaguard-$NOVAGUARD_ID"
+        SYMLINK_BIN="/usr/local/bin/novavpn-$NOVAGUARD_ID"
+        echo "⚠️  هشدار: این عملیات همه فایل‌ها، سرویس‌ها و منوی novavpn-$NOVAGUARD_ID را حذف می‌کند!"
         read -p "آیا مطمئن هستید؟ (yes/NO): " confirm
         if [[ "$confirm" == "yes" ]]; then
             # توقف و حذف سرویس systemd
-            if systemctl is-active --quiet novaguard 2>/dev/null; then
-                systemctl stop novaguard 2>/dev/null
+            if systemctl is-active --quiet $SERVICE_NAME 2>/dev/null; then
+                systemctl stop $SERVICE_NAME 2>/dev/null
             fi
-            if systemctl is-enabled --quiet novaguard 2>/dev/null; then
-                systemctl disable novaguard 2>/dev/null
+            if systemctl is-enabled --quiet $SERVICE_NAME 2>/dev/null; then
+                systemctl disable $SERVICE_NAME 2>/dev/null
             fi
-            if [ -f "/etc/systemd/system/novaguard.service" ]; then
-                rm -f /etc/systemd/system/novaguard.service
+            if [ -f "/etc/systemd/system/$SERVICE_FILE" ]; then
+                rm -f /etc/systemd/system/$SERVICE_FILE
                 systemctl daemon-reload
             fi
             # حذف symlink novavpn
-            if [ -L "/usr/local/bin/novavpn" ]; then
-                rm -f /usr/local/bin/novavpn
+            if [ -L "$SYMLINK_BIN" ]; then
+                rm -f "$SYMLINK_BIN"
             fi
             # حذف کامل دایرکتوری نصب
-            INSTALL_DIR="/usr/local/novaguard-server"
             if [ -d "$INSTALL_DIR" ]; then
                 rm -rf "$INSTALL_DIR"
             fi
