@@ -155,11 +155,14 @@ EOF
         if [ -z "$port" ]; then
             return 1
         fi
-        if sudo lsof -i :$port | grep LISTEN >/dev/null 2>&1; then
+        # بررسی TCP و UDP
+        if sudo lsof -iTCP:$port -sTCP:LISTEN 2>/dev/null | grep LISTEN >/dev/null 2>&1; then
             return 0
-        else
-            return 1
         fi
+        if sudo lsof -iUDP:$port 2>/dev/null | grep UDP >/dev/null 2>&1; then
+            return 0
+        fi
+        return 1
     }
 
     function show_menu() {
@@ -501,11 +504,14 @@ function is_port_listening() {
     if [ -z "$port" ]; then
         return 1
     fi
-    if sudo lsof -i :$port | grep LISTEN >/dev/null 2>&1; then
+    # بررسی TCP و UDP
+    if sudo lsof -iTCP:$port -sTCP:LISTEN 2>/dev/null | grep LISTEN >/dev/null 2>&1; then
         return 0
-    else
-        return 1
     fi
+    if sudo lsof -iUDP:$port 2>/dev/null | grep UDP >/dev/null 2>&1; then
+        return 0
+    fi
+    return 1
 }
 
 function show_menu() {
