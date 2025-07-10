@@ -102,6 +102,12 @@ install_go() {
 install_novaguard() {
     echo -e "${BLUE}نصب NovaGuard Server...${NC}"
     
+    # حذف دایرکتوری نصب قبلی در صورت وجود
+    if [[ -d "$INSTALL_DIR" ]]; then
+        echo "حذف نصب قبلی..."
+        rm -rf "$INSTALL_DIR"
+    fi
+    
     # ساخت دایرکتوری نصب
     echo "ساخت دایرکتوری نصب..."
     mkdir -p "$INSTALL_DIR"
@@ -167,6 +173,14 @@ EOF
     
     # دانلود و مرتب کردن وابستگی‌ها
     echo "دانلود وابستگی‌های Go..."
+    
+    # حذف فایل خراب go.sum در صورت وجود
+    if [[ -f "go.sum" ]]; then
+        echo "حذف فایل خراب go.sum..."
+        rm -f go.sum
+    fi
+    
+    # بازسازی go.sum
     go mod download
     go mod tidy
     
@@ -186,6 +200,12 @@ setup_systemd() {
     if [[ -f "/etc/systemd/system/$SERVICE_FILE" ]]; then
         echo "حذف فایل سرویس قدیمی..."
         rm -f "/etc/systemd/system/$SERVICE_FILE"
+    fi
+    
+    # توقف سرویس قبلی در صورت فعال بودن
+    if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+        echo "توقف سرویس قبلی..."
+        systemctl stop "$SERVICE_NAME" 2>/dev/null || true
     fi
     
     # نصب سرویس جدید
