@@ -118,28 +118,23 @@ if [[ "$SCRIPT_NAME" == "novavpn" || "$SCRIPT_NAME" == "nova.sh" ]]; then
     }
 
     function create_config() {
-        echo "Generating new config..."
-        
-        # Get server IP (اولویت با IP عمومی، اگر نبود IP لوکال)
-        SERVER_IP=$(curl -s ifconfig.me 2>/dev/null)
-        if [[ -z "$SERVER_IP" ]]; then
-            SERVER_IP=$(hostname -I | awk '{print $1}')
+        # مقداردهی پورت‌ها
+        local tcp_port=3077
+        local udp_port=3076
+        read -p "پورت TCP را وارد کنید (پیش‌فرض: 3077): " input_tcp
+        if [[ $input_tcp =~ ^[0-9]+$ ]]; then
+            tcp_port=$input_tcp
         fi
-        if [[ -z "$SERVER_IP" ]]; then
-            SERVER_IP="0.0.0.0"
+        read -p "پورت UDP را وارد کنید (پیش‌فرض: 3076): " input_udp
+        if [[ $input_udp =~ ^[0-9]+$ ]]; then
+            udp_port=$input_udp
         fi
-        
-        # Generate UUIDs
-        CONFIG_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "config-$(date +%s)")
-        SESSION_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "session-$(date +%s)")
-        
-        cat > "$CONFIG_FILE" << EOF
+        # ساخت config.json با هر دو پورت
+        cat > config.json << EOF
 {
-  "server": "$SERVER_IP",
-  "tcp_port": 3077,
-  "udp_port": 3076,
-  "config_id": "$CONFIG_ID",
-  "session_id": "$SESSION_ID",
+  "server": "$(hostname -I | awk '{print $1}')",
+  "tcp_port": $tcp_port,
+  "udp_port": $udp_port,
   "protocol": "novaguard-v1",
   "encryption": "chacha20-poly1305",
   "version": "1.0.0",
@@ -147,7 +142,8 @@ if [[ "$SCRIPT_NAME" == "novavpn" || "$SCRIPT_NAME" == "nova.sh" ]]; then
   "keyfile": "novaguard.key"
 }
 EOF
-        echo "Config generated: $CONFIG_FILE"
+        echo "Config generated: config.json (TCP: $tcp_port, UDP: $udp_port)"
+        echo "\nتوجه: کلاینت می‌تواند بین TCP و UDP سوییچ کند."
     }
 
     function is_port_listening() {
@@ -467,28 +463,23 @@ function change_port() {
 }
 
 function create_config() {
-    echo "Generating new config..."
-    
-    # Get server IP (اولویت با IP عمومی، اگر نبود IP لوکال)
-    SERVER_IP=$(curl -s ifconfig.me 2>/dev/null)
-    if [[ -z "$SERVER_IP" ]]; then
-        SERVER_IP=$(hostname -I | awk '{print $1}')
+    # مقداردهی پورت‌ها
+    local tcp_port=3077
+    local udp_port=3076
+    read -p "پورت TCP را وارد کنید (پیش‌فرض: 3077): " input_tcp
+    if [[ $input_tcp =~ ^[0-9]+$ ]]; then
+        tcp_port=$input_tcp
     fi
-    if [[ -z "$SERVER_IP" ]]; then
-        SERVER_IP="0.0.0.0"
+    read -p "پورت UDP را وارد کنید (پیش‌فرض: 3076): " input_udp
+    if [[ $input_udp =~ ^[0-9]+$ ]]; then
+        udp_port=$input_udp
     fi
-    
-    # Generate UUIDs
-    CONFIG_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "config-$(date +%s)")
-    SESSION_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "session-$(date +%s)")
-    
-    cat > "$CONFIG_FILE" << EOF
+    # ساخت config.json با هر دو پورت
+    cat > config.json << EOF
 {
-  "server": "$SERVER_IP",
-  "tcp_port": 3077,
-  "udp_port": 3076,
-  "config_id": "$CONFIG_ID",
-  "session_id": "$SESSION_ID",
+  "server": "$(hostname -I | awk '{print $1}')",
+  "tcp_port": $tcp_port,
+  "udp_port": $udp_port,
   "protocol": "novaguard-v1",
   "encryption": "chacha20-poly1305",
   "version": "1.0.0",
@@ -496,7 +487,8 @@ function create_config() {
   "keyfile": "novaguard.key"
 }
 EOF
-    echo "Config generated: $CONFIG_FILE"
+    echo "Config generated: config.json (TCP: $tcp_port, UDP: $udp_port)"
+    echo "\nتوجه: کلاینت می‌تواند بین TCP و UDP سوییچ کند."
 }
 
 function is_port_listening() {
