@@ -91,8 +91,14 @@ function change_port() {
 function create_config() {
     echo "Generating new config..."
     
-    # Get server IP
-    SERVER_IP=$(curl -s ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
+    # Get server IP (اولویت با IP عمومی، اگر نبود IP لوکال)
+    SERVER_IP=$(curl -s ifconfig.me 2>/dev/null)
+    if [[ -z "$SERVER_IP" ]]; then
+        SERVER_IP=$(hostname -I | awk '{print $1}')
+    fi
+    if [[ -z "$SERVER_IP" ]]; then
+        SERVER_IP="0.0.0.0"
+    fi
     
     # Generate UUIDs
     CONFIG_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "config-$(date +%s)")
@@ -198,16 +204,11 @@ while true; do
             start_server_bg
             sleep 2
             if is_port_listening "3077" || is_port_listening "3076"; then
-                if [ ! -f "$CONFIG_FILE" ]; then
-                    echo "No config.json found. Creating new config..."
-                    create_config
-                    # فقط اگر کانفیگ جدید ساخته شد، کد اتصال را نمایش بده
-                    connection_code=$(generate_connection_code)
-                    if [ ! -z "$connection_code" ]; then
-                        echo "ng://$connection_code"
-                    fi
-                else
-                    echo "Using existing config.json. کد اتصال نمایش داده نمی‌شود."
+                echo "Creating new config..."
+                create_config
+                connection_code=$(generate_connection_code)
+                if [ ! -z "$connection_code" ]; then
+                    echo "ng://$connection_code"
                 fi
             else
                 echo "[خطا] سرور روی پورت 3077 یا 3076 اجرا نشده است! کانفیگ ساخته نشد."
