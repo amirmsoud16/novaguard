@@ -308,6 +308,15 @@ main() {
     # نمایش اطلاعات نصب
     show_info
     
+    # اطمینان از وجود و اجرایی بودن nova.sh
+    if [ -f "nova.sh" ]; then
+        chmod +x nova.sh
+    fi
+    echo ""
+    echo -e "${GREEN}نصب با موفقیت انجام شد!${NC}"
+    echo "در حال ورود به منوی تعاملی..."
+    sleep 2
+    exec bash ./nova.sh
     # پاک‌سازی
     cleanup
 }
