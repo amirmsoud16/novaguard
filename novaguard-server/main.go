@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"flag"
 	"fmt"
 	"io"
@@ -590,7 +591,13 @@ func getCertFingerprint(certFile string) (string, error) {
 		return "", err
 	}
 
-	cert, err := x509.ParseCertificate(data)
+	// Decode PEM
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return "", fmt.Errorf("failed to decode PEM block")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
 		return "", err
 	}
