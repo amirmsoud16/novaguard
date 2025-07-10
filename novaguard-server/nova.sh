@@ -12,13 +12,39 @@ if [[ "$SCRIPT_NAME" == "novavpn" || "$SCRIPT_NAME" == "nova.sh" ]]; then
     HISTORY_FILE="configs/history.txt"
 
     function is_server_running() {
+        # بررسی PID file
         if [ -f "$PID_FILE" ]; then
             pid=$(cat "$PID_FILE")
             if ps -p "$pid" > /dev/null 2>&1; then
                 return 0
             fi
         fi
+        
+        # بررسی process name
+        if pgrep -f "novaguard-server" > /dev/null 2>&1; then
+            return 0
+        fi
+        
+        # بررسی systemd service
+        if systemctl is-active --quiet novaguard 2>/dev/null; then
+            return 0
+        fi
+        
         return 1
+    }
+
+    function get_server_pid() {
+        # ابتدا از PID file
+        if [ -f "$PID_FILE" ]; then
+            pid=$(cat "$PID_FILE")
+            if ps -p "$pid" > /dev/null 2>&1; then
+                echo "$pid"
+                return
+            fi
+        fi
+        
+        # سپس از process name
+        pgrep -f "novaguard-server" | head -1
     }
 
     function start_server_bg() {
@@ -161,8 +187,8 @@ EOF
         echo "=== NovaGuard Server Status ==="
         if is_server_running; then
             echo "Status: Running"
-            if [ -f "$PID_FILE" ]; then
-                pid=$(cat "$PID_FILE")
+            pid=$(get_server_pid)
+            if [ ! -z "$pid" ]; then
                 echo "PID: $pid"
                 echo "Memory Usage: $(ps -o rss= -p $pid 2>/dev/null | awk '{print $1/1024 " MB"}')"
             fi
