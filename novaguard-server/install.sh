@@ -323,24 +323,31 @@ main() {
     cleanup
 }
 
-# حذف کامل نصب قبلی برای نصب تمیز
-if systemctl is-active --quiet novaguard 2>/dev/null; then
+# شناسه نصب (ID) ثابت
+NOVAGUARD_ID=3315
+INSTALL_DIR="/usr/local/novaguard-$NOVAGUARD_ID"
+SERVICE_FILE="novaguard-$NOVAGUARD_ID.service"
+SERVICE_NAME="novaguard-$NOVAGUARD_ID"
+SYMLINK_BIN="/usr/local/bin/novavpn-$NOVAGUARD_ID"
+
+# حذف کامل نصب قبلی برای این شناسه
+if systemctl is-active --quiet $SERVICE_NAME 2>/dev/null; then
     echo "Stopping old systemd service..."
-    systemctl stop novaguard 2>/dev/null
+    systemctl stop $SERVICE_NAME 2>/dev/null
 fi
-if systemctl is-enabled --quiet novaguard 2>/dev/null; then
+if systemctl is-enabled --quiet $SERVICE_NAME 2>/dev/null; then
     echo "Disabling old systemd service..."
-    systemctl disable novaguard 2>/dev/null
+    systemctl disable $SERVICE_NAME 2>/dev/null
 fi
-if [ -f "/etc/systemd/system/novaguard.service" ]; then
+if [ -f "/etc/systemd/system/$SERVICE_FILE" ]; then
     echo "Removing old systemd service file..."
-    rm -f /etc/systemd/system/novaguard.service
+    rm -f /etc/systemd/system/$SERVICE_FILE
     systemctl daemon-reload
 fi
 
 # حذف symlink قبلی novavpn
-if [ -L "/usr/local/bin/novavpn" ]; then
-    rm -f /usr/local/bin/novavpn
+if [ -L "$SYMLINK_BIN" ]; then
+    rm -f "$SYMLINK_BIN"
 fi
 
 # حذف کامل دایرکتوری نصب (و همه فایل‌های داخل آن)
