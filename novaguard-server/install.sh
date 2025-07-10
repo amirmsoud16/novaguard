@@ -202,12 +202,6 @@ setup_systemd() {
         rm -f "/etc/systemd/system/$SERVICE_FILE"
     fi
     
-    # توقف سرویس قبلی در صورت فعال بودن
-    if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
-        echo "توقف سرویس قبلی..."
-        systemctl stop "$SERVICE_NAME" 2>/dev/null || true
-    fi
-    
     # نصب سرویس جدید
     cp "$SERVICE_FILE" "/etc/systemd/system/"
     
@@ -328,6 +322,47 @@ main() {
     # پاک‌سازی
     cleanup
 }
+
+# حذف کامل فایل‌ها و سرویس‌های قبلی برای نصب تمیز
+if systemctl is-active --quiet novaguard 2>/dev/null; then
+    echo "Stopping old systemd service..."
+    systemctl stop novaguard 2>/dev/null
+fi
+if systemctl is-enabled --quiet novaguard 2>/dev/null; then
+    echo "Disabling old systemd service..."
+    systemctl disable novaguard 2>/dev/null
+fi
+if [ -f "/etc/systemd/system/novaguard.service" ]; then
+    echo "Removing old systemd service file..."
+    rm -f /etc/systemd/system/novaguard.service
+    systemctl daemon-reload
+fi
+
+# حذف فایل‌های اجرایی و اسکریپت و کانفیگ و گواهی و لاگ و PID
+CLEAN_PATHS=(
+    "$INSTALL_DIR/novaguard-server"
+    "$INSTALL_DIR/nova.sh"
+    "$INSTALL_DIR/build.sh"
+    "$INSTALL_DIR/generate_cert.sh"
+    "$INSTALL_DIR/manage.sh"
+    "$INSTALL_DIR/go.mod"
+    "$INSTALL_DIR/go.sum"
+    "$INSTALL_DIR/main.go"
+    "$INSTALL_DIR/config.json"
+    "$INSTALL_DIR/novaguard.crt"
+    "$INSTALL_DIR/novaguard.key"
+    "$INSTALL_DIR/novaguard-server.pid"
+    "$INSTALL_DIR/novaguard-server.log"
+    "$INSTALL_DIR/configs"
+)
+for f in "${CLEAN_PATHS[@]}"; do
+    [ -e "$f" ] && rm -rf "$f"
+done
+
+# حذف symlink قبلی novavpn
+if [ -L "/usr/local/bin/novavpn" ]; then
+    rm -f /usr/local/bin/novavpn
+fi
 
 # اجرای تابع اصلی
 main 
