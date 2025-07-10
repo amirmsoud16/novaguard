@@ -1,5 +1,19 @@
 #!/bin/bash
 
+# اگر اسکریپت با نام novavpn اجرا شود، منو را اجرا کن
+SCRIPT_NAME=$(basename "$0")
+if [[ "$SCRIPT_NAME" == "novavpn" ]]; then
+    # اجرای منو
+    while true; do
+        show_menu
+        read -p "Select an option [1-10]: " choice
+        case $choice in
+            # ... (همان caseهای قبلی) ...
+        esac
+    done
+    exit 0
+fi
+
 PROJECT_DIR="$(dirname "$0")"
 cd "$PROJECT_DIR"
 SERVER_NAME="novaguard-server"
