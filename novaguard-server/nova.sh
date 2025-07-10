@@ -132,22 +132,27 @@ if [[ "$SCRIPT_NAME" == "novavpn" || "$SCRIPT_NAME" == "nova.sh" ]]; then
         # مقداردهی یکتای config_id و session_id
         CONFIG_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen || echo "config-$(date +%s)")
         SESSION_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen || echo "session-$(date +%s)")
-        # ساخت config.json با هر دو پورت و شناسه یکتا
-        cat > config.json << EOF
-{
-  "server": "$(hostname -I | awk '{print $1}')",
-  "tcp_port": $tcp_port,
-  "udp_port": $udp_port,
-  "config_id": "$CONFIG_ID",
-  "session_id": "$SESSION_ID",
-  "protocol": "novaguard-v1",
-  "encryption": "chacha20-poly1305",
-  "version": "1.0.0",
-  "certfile": "novaguard.crt",
-  "keyfile": "novaguard.key"
-}
-EOF
-        echo "Config generated: config.json (TCP: $tcp_port, UDP: $udp_port)"
+        # ساخت آبجکت کانفیگ
+        local config_json
+        config_json=$(jq -n \
+            --arg server "$(hostname -I | awk '{print $1}')" \
+            --argjson tcp_port "$tcp_port" \
+            --argjson udp_port "$udp_port" \
+            --arg config_id "$CONFIG_ID" \
+            --arg session_id "$SESSION_ID" \
+            --arg protocol "novaguard-v1" \
+            --arg encryption "chacha20-poly1305" \
+            --arg version "1.0.0" \
+            --arg certfile "novaguard.crt" \
+            --arg keyfile "novaguard.key" \
+            '{server: $server, tcp_port: $tcp_port, udp_port: $udp_port, config_id: $config_id, session_id: $session_id, protocol: $protocol, encryption: $encryption, version: $version, certfile: $certfile, keyfile: $keyfile}')
+        # ذخیره در configs.json
+        if [[ -f configs.json ]]; then
+            jq ". += [ $config_json ]" configs.json > configs_tmp.json && mv configs_tmp.json configs.json
+        else
+            echo "[ $config_json ]" > configs.json
+        fi
+        echo "Config generated and saved to configs.json (TCP: $tcp_port, UDP: $udp_port)"
         echo "\nتوجه: کلاینت می‌تواند بین TCP و UDP سوییچ کند."
     }
 
@@ -196,16 +201,25 @@ EOF
                 echo "PID: $pid"
                 echo "Memory Usage: $(ps -o rss= -p $pid 2>/dev/null | awk '{print $1/1024 " MB"}')"
             fi
-            echo "Ports:"
-            if is_port_listening "3077"; then
-                echo "  TCP Port 3077: Active"
+            # نمایش همه پورت‌های configs.json
+            if [[ -f configs.json ]]; then
+                echo "Ports:"
+                jq -c '.[]' configs.json | while read -r cfg; do
+                    tcp_port=$(echo "$cfg" | jq -r '.tcp_port')
+                    udp_port=$(echo "$cfg" | jq -r '.udp_port')
+                    if is_port_listening "$tcp_port"; then
+                        echo "  TCP Port $tcp_port: Active"
+                    else
+                        echo "  TCP Port $tcp_port: Inactive"
+                    fi
+                    if is_port_listening "$udp_port"; then
+                        echo "  UDP Port $udp_port: Active"
+                    else
+                        echo "  UDP Port $udp_port: Inactive"
+                    fi
+                done
             else
-                echo "  TCP Port 3077: Inactive"
-            fi
-            if is_port_listening "3076"; then
-                echo "  UDP Port 3076: Active"
-            else
-                echo "  UDP Port 3076: Inactive"
+                echo "Ports: Inactive"
             fi
             if [ -f "$CONFIG_FILE" ]; then
                 echo "Config: Loaded"
@@ -482,22 +496,27 @@ function create_config() {
     # مقداردهی یکتای config_id و session_id
     CONFIG_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen || echo "config-$(date +%s)")
     SESSION_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen || echo "session-$(date +%s)")
-    # ساخت config.json با هر دو پورت و شناسه یکتا
-    cat > config.json << EOF
-{
-  "server": "$(hostname -I | awk '{print $1}')",
-  "tcp_port": $tcp_port,
-  "udp_port": $udp_port,
-  "config_id": "$CONFIG_ID",
-  "session_id": "$SESSION_ID",
-  "protocol": "novaguard-v1",
-  "encryption": "chacha20-poly1305",
-  "version": "1.0.0",
-  "certfile": "novaguard.crt",
-  "keyfile": "novaguard.key"
-}
-EOF
-    echo "Config generated: config.json (TCP: $tcp_port, UDP: $udp_port)"
+    # ساخت آبجکت کانفیگ
+    local config_json
+    config_json=$(jq -n \
+        --arg server "$(hostname -I | awk '{print $1}')" \
+        --argjson tcp_port "$tcp_port" \
+        --argjson udp_port "$udp_port" \
+        --arg config_id "$CONFIG_ID" \
+        --arg session_id "$SESSION_ID" \
+        --arg protocol "novaguard-v1" \
+        --arg encryption "chacha20-poly1305" \
+        --arg version "1.0.0" \
+        --arg certfile "novaguard.crt" \
+        --arg keyfile "novaguard.key" \
+        '{server: $server, tcp_port: $tcp_port, udp_port: $udp_port, config_id: $config_id, session_id: $session_id, protocol: $protocol, encryption: $encryption, version: $version, certfile: $certfile, keyfile: $keyfile}')
+    # ذخیره در configs.json
+    if [[ -f configs.json ]]; then
+        jq ". += [ $config_json ]" configs.json > configs_tmp.json && mv configs_tmp.json configs.json
+    else
+        echo "[ $config_json ]" > configs.json
+    fi
+    echo "Config generated and saved to configs.json (TCP: $tcp_port, UDP: $udp_port)"
     echo "\nتوجه: کلاینت می‌تواند بین TCP و UDP سوییچ کند."
 }
 
@@ -546,16 +565,25 @@ function show_server_status() {
             echo "PID: $pid"
             echo "Memory Usage: $(ps -o rss= -p $pid 2>/dev/null | awk '{print $1/1024 " MB"}')"
         fi
-        echo "Ports:"
-        if is_port_listening "3077"; then
-            echo "  TCP Port 3077: Active"
+        # نمایش همه پورت‌های configs.json
+        if [[ -f configs.json ]]; then
+            echo "Ports:"
+            jq -c '.[]' configs.json | while read -r cfg; do
+                tcp_port=$(echo "$cfg" | jq -r '.tcp_port')
+                udp_port=$(echo "$cfg" | jq -r '.udp_port')
+                if is_port_listening "$tcp_port"; then
+                    echo "  TCP Port $tcp_port: Active"
+                else
+                    echo "  TCP Port $tcp_port: Inactive"
+                fi
+                if is_port_listening "$udp_port"; then
+                    echo "  UDP Port $udp_port: Active"
+                else
+                    echo "  UDP Port $udp_port: Inactive"
+                fi
+            done
         else
-            echo "  TCP Port 3077: Inactive"
-        fi
-        if is_port_listening "3076"; then
-            echo "  UDP Port 3076: Active"
-        else
-            echo "  UDP Port 3076: Inactive"
+            echo "Ports: Inactive"
         fi
         if [ -f "$CONFIG_FILE" ]; then
             echo "Config: Loaded"
@@ -601,6 +629,21 @@ function generate_connection_code() {
         fi
     else
         echo "[خطا] فایل config.json یافت نشد!"
+    fi
+}
+
+# نمایش همه کانفیگ‌ها
+function show_all_configs() {
+    if [[ -f configs.json ]]; then
+        echo "=== All NovaGuard Configs ==="
+        jq -c '.[]' configs.json | while read -r cfg; do
+            # تولید ng:// فقط یک بار
+            ngurl="ng://$(echo "$cfg" | base64 -w0)"
+            echo "$ngurl"
+        done
+        echo "============================="
+    else
+        echo "هیچ کانفیگی وجود ندارد."
     fi
 }
 
